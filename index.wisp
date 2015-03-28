@@ -1,4 +1,4 @@
-(ns sampler (:require [wisp.runtime :refer [= and]]))
+(ns sampler (:require [wisp.runtime :refer [= and str]]))
 
 (let [child (require "child_process")
       fs    (require "fs")
@@ -17,19 +17,37 @@
                     (fs.readdirSync sample-path)
                     (catch e []))
 
+      jack-connect  (fn [client]
+                      (let [port (str client ":output")]
+                        (child.spawn "jack_connect" [ port "system:playback_1" ])
+                        (child.spawn "jack_connect" [ port "system:playback_2" ])))
+
+      jack-events (let [jack-evmon (child.spawn "jack_evmon")]
+                    (jack-evmon.stdout.set-encoding "utf8")
+                    (jack-evmon.stdout.on "data" (fn [d]
+                      (let [d     (d.to-string)
+                            lines (d.split "\n")]
+                        (lines.map (fn [line]
+                          (let [match (line.match "Client (.+) registered")]
+                            (if match (let [client (aget match 1)]
+                              (if (= -1 (client.index-of "jack_connect"))
+                                (jack-connect client))))))))))
+                    jack-evmon)
+
       load-sample (fn load-sample [sample]
-                    (let [full-path (path.join sample-path sample)]
+                    (let [full-path   (path.join sample-path sample)
+                          client-name (sample.substr 0 50)]
                       (set! osc-port (+ 1 osc-port))
-                      (console.log osc-port "-" sample)
                       (child.spawn postmelodic
                         [ full-path
-                          "-n" "Postmelodic"
-                          "-p" osc-port ])))
+                          "-n" osc-port
+                          "-p" osc-port ])
+                      (jack-connect osc-port)))
 
       samples     (let [files (try (fs.readdirSync sample-path)
                                    (catch e []))]
                     (if files.length
-                      (do (console.log "Loading sounds:")
+                      (do (console.log "Loading sounds...")
                           (files.map load-sample))
                       (do (console.log "Oh zounds! No sounds were found.")
                           nil)))
