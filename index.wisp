@@ -87,8 +87,10 @@
                         (do (console.log "Oh zounds! No sounds were found.")
                             nil)))
 
-      ;gui         (require "ui-hypertext")
+      ; gui
 
-      ;http-server (gui.server 4000 (gui.page "/" ""))
+      gui         (require "ui-hypertext")
+
+      http-server ((gui.server 4000 (gui.page "/")))
 
 ])
