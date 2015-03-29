@@ -11,8 +11,10 @@
       osc-port    10000
       postmelodic "/home/epimetheus/code/hardmode/postmelodic/bin/sample_player"
       kit         "kits/ultra.json"
-      pads        [[0  1]  [2  3]  [4  5]  [6  7]
-                   [16 17] [18 19] [20 21] [22 23]]
+      pads      [ [0  1]  [2  3]  [4  5]  [6  7]
+                  [16 17] [18 19] [20 21] [22 23]
+                  [32 33] [34 35] [36 37] [38 39]
+                  [48 49] [50 51] [52 53] [54 55] ]
 
       ; controllers
 
@@ -54,43 +56,28 @@
 
       ; sound player
 
-      sample-path (let [s (path.resolve kit)]
-                    (console.log "\nOpening kit" s)
-                    s)
-
       jack-connect  (fn [client]
                       (let [port (str client ":output")]
                         (child.spawn "jack_connect" [ port "system:playback_1" ])
                         (child.spawn "jack_connect" [ port "system:playback_2" ])))
 
-      jack-events (let [jack-evmon (child.spawn "jack_evmon")]
-                    (jack-evmon.stdout.set-encoding "utf8")
-                    (jack-evmon.stdout.on "data" (fn [d]
-                      (let [d     (d.to-string)
-                            lines (d.split "\n")]
-                        (lines.map (fn [line]
-                          (let [match (line.match "Client (.+) registered")]
-                            (if match (let [client (aget match 1)]
-                              (if (= -1 (client.index-of "jack_connect"))
-                                (console.log client)
-                                (jack-connect client))))))))))
-                    jack-evmon)
-
       load-sample (fn load-sample [sample]
                     (let [client-name (sample.substr 0 50)
                           sample-nr   (- osc-port 10000)
                           sampler     (child.spawn postmelodic
-                                        [ "-n" osc-port
+                                        [ "-n" sample-nr
                                           "-p" osc-port
-                                          sample ] )]
-                                        ;{ :stdio "inherit"})]
+                                          "-c" "system:playback_1"
+                                          sample ]
+                                        { :stdio "inherit" } ) ]
                       (console.log "\n" osc-port client-name sample)
                       (.map (aget pads sample-nr) (fn [pad]
                         (midi-output.send-message [144 pad (- 127 sample-nr)])))
                       (set! osc-port (+ 1 osc-port))))
 
       load-samples  (let [kit (try (JSON.parse (fs.readFileSync
-                                     sample-path { :encoding "utf8" }))
+                                     (path.resolve kit)
+                                     { :encoding "utf8" }))
                                    (catch e { :root   ""
                                               :sounds [] }))]
                       (if (.-length (or kit.sounds []))
