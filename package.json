@@ -1,5 +1,7 @@
 {
   "dependencies": {
-    "node-osc": "^0.3.0"
+    "chance": "^0.7.3",
+    "node-osc": "^0.3.0",
+    "recursive-readdir": "^1.2.1"
   }
 }
