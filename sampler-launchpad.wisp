@@ -39,9 +39,8 @@
 
       (if (= d1 120) (do
         (console.log "STOP ALL")
-        (.map (get-range 10000 sample-count)
+        (.map (get-range 10000 osc-port)
           (fn [port]
-            (console.log "STOP" port) 
             (osc.send "127.0.0.1" port "/stop" 0)))))
 
       )))
@@ -50,6 +49,8 @@
   (fn []
     (.map (get-range 0 256) (fn [i] (launchpad.out.send-message [144 i 0])))
     (launchpad.out.send-message [144 120 70]))
+
+  _ (process.on "exit" clear)
 
   ; sound player
 
@@ -75,7 +76,7 @@
       (set! osc-port (+ 1 osc-port))))
 
   load-samples
-  (fn [kit] (kit.map (fn [sample] load-sample)))
+  (fn [kit] (kit.map load-sample))
 
   load-random-samples
   (fn [n] (.map (chance.pick library n) load-sample))
@@ -83,19 +84,17 @@
   make-kit
   (fn [root files] (.map files (fn [f] (path.resolve (path.join root f)))))
 
-  drum-kit
-  (make-kit
-    "/home/epimetheus/Sounds/Vengeance - Dirty Electro Vol.3/VDE3 128 BPM Ultra Kit/VDE3 Ultra Kit Oneshots/"
-    [ "VDE3 128 BPM Ultra Oneshot Kick.wav"
-      "VDE3 128 BPM Ultra Oneshot Clap.wav"
-      "VDE3 128 BPM Ultra Oneshot Snare.wav"
-      "VDE3 128 BPM Ultra Oneshot Hihat 1.wav" ])
-
 ]
 
   (clear)
 
-  (load-samples drum-kit)
+  (load-samples
+    (make-kit
+      "/home/epimetheus/Sounds/Vengeance - Dirty Electro Vol.3/VDE3 128 BPM Ultra Kit/VDE3 Ultra Kit Oneshots/"
+      [ "VDE3 128 BPM Ultra Oneshot Kick.wav"
+        "VDE3 128 BPM Ultra Oneshot Clap.wav"
+        "VDE3 128 BPM Ultra Oneshot Snare.wav"
+        "VDE3 128 BPM Ultra Oneshot Hihat 1.wav" ]))
 
   ((require "recursive-readdir") (path.resolve sounds-dir)
     (fn [err files] (if err (throw err))
