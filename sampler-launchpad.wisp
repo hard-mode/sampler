@@ -48,7 +48,8 @@
 
   clear
   (fn []
-    (.map (get-range 0 256) (fn [i] launchpad.out.send-message [144 i 127])))
+    (.map (get-range 0 256) (fn [i] (launchpad.out.send-message [144 i 0])))
+    (launchpad.out.send-message [144 120 70]))
 
   ; sound player
 
@@ -84,8 +85,7 @@
       (fn [err files] (if err (throw err))
         (console.log (require "chance"))
         (let [sounds (.pick (new (require "chance")) files n)]
-          (sounds.map load-sample))
-          (launchpad.out.send-message [144 120 70]))))
+          (sounds.map load-sample)))))
 
   kit-path
   "kits/ultra.json"
