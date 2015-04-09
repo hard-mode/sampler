@@ -8,4 +8,9 @@
 
 (defn send [addr port & args]
   (let [client (aget clients (str "127.0.0.1" port))]
-    (client.send.apply client args)))
+    (if client
+      (client.send.apply client args)
+      (let [client (osc.Client. "127.0.0.1" port)]
+        (console.log "new client" port)
+        (set! (aget clients (str "127.0.0.1" port)) client)
+        (client.send.apply client args)))))

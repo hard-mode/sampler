@@ -16,7 +16,7 @@
     (get-port-by-name m port-name (fn [port-number]
       (console.log "OUT ::" port-number (m.get-port-name port-number))
       (m.open-port port-number)))
-  m))
+    m))
 
 (defn connect-input [port-name callback]
   (let [m (new midi.input)]
@@ -28,7 +28,7 @@
               d1  (aget message 1)
               d2  (aget message 2)]
           (callback dt msg d1 d2))))))
-  m))
+    m))
 
 (defn connect-controller [controller-name callback]
   { :in  (connect-input  controller-name callback)
