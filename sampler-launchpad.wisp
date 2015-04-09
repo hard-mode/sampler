@@ -12,14 +12,13 @@
   util (require "./util.wisp")
   get-range util.get-range
 
-  _ (console.log "FOOOOO" osc)
+  chance (new (require "chance"))
 
   ; settings
 
   osc-port     10000
   sample-count 16
   postmelodic  "/home/epimetheus/code/hardmode/postmelodic/bin/sample_player"
-  sounds-dir   "/home/epimetheus/Sounds"
   pads         [ [0  1]  [2  3]  [4  5]  [6  7]
                  [16 17] [18 19] [20 21] [22 23]
                  [32 33] [34 35] [36 37] [38 39]
@@ -38,11 +37,12 @@
             (+ 10000 n)
             "/play" 0 0)))))
 
-      (if (= d1 120)
+      (if (= d1 120) (do
+        (console.log "STOP ALL")
         (.map (get-range 10000 sample-count)
           (fn [port]
             (console.log "STOP" port) 
-            (osc.send "127.0.0.1" port "/stop" 0))))
+            (osc.send "127.0.0.1" port "/stop" 0)))))
 
       )))
 
@@ -52,6 +52,10 @@
     (launchpad.out.send-message [144 120 70]))
 
   ; sound player
+
+  sounds-dir   "/home/epimetheus/Sounds"
+
+  library []
 
   load-sample
   (fn load-sample [sample]
@@ -71,35 +75,31 @@
       (set! osc-port (+ 1 osc-port))))
 
   load-samples
-  (fn [kit]
-    (if (.-length (or kit.sounds []))
-      (do (console.log "Loading sounds...")
-          (kit.sounds.map (fn [sample] (load-sample
-            (path.resolve (path.join kit.root sample))))))
-      (do (console.log "Oh zounds! No sounds were found.")
-          nil)))
- 
+  (fn [kit] (kit.map (fn [sample] load-sample)))
+
   load-random-samples
-  (fn [n]
-    ((require "recursive-readdir") (path.resolve sounds-dir)
-      (fn [err files] (if err (throw err))
-        (console.log (require "chance"))
-        (let [sounds (.pick (new (require "chance")) files n)]
-          (sounds.map load-sample)))))
+  (fn [n] (.map (chance.pick library n) load-sample))
 
-  kit-path
-  "kits/ultra.json"
+  make-kit
+  (fn [root files] (.map files (fn [f] (path.resolve (path.join root f)))))
 
-  kit
-  (try
-    (JSON.parse
-      (fs.readFileSync (path.resolve kit-path) { :encoding "utf8" }))
-    (catch e { :root "" :sounds [] }))
+  drum-kit
+  (make-kit
+    "/home/epimetheus/Sounds/Vengeance - Dirty Electro Vol.3/VDE3 128 BPM Ultra Kit/VDE3 Ultra Kit Oneshots/"
+    [ "VDE3 128 BPM Ultra Oneshot Kick.wav"
+      "VDE3 128 BPM Ultra Oneshot Clap.wav"
+      "VDE3 128 BPM Ultra Oneshot Snare.wav"
+      "VDE3 128 BPM Ultra Oneshot Hihat 1.wav" ])
 
 ]
 
   (clear)
-  (load-samples kit)
-  (load-random-samples 8)
+
+  (load-samples drum-kit)
+
+  ((require "recursive-readdir") (path.resolve sounds-dir)
+    (fn [err files] (if err (throw err))
+      (set! library files)
+      (load-random-samples 8)))
 
 )
