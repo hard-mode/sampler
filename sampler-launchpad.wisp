@@ -22,7 +22,10 @@
   pads         [ [0  1]  [2  3]  [4  5]  [6  7]
                  [16 17] [18 19] [20 21] [22 23]
                  [32 33] [34 35] [36 37] [38 39]
-                 [48 49] [50 51] [52 53] [54 55] ]
+                 [48 49] [50 51] [52 53] [54 55] 
+                 [64 65] [66 67] [68 69] [70 71] 
+                 [80 81] [82 83] [84 85] [86 87] 
+                 [96 97] [98 99] [100 101] [102 103] ]
 
   ; controller
 
@@ -39,7 +42,7 @@
 
       (if (= d1 120) (do
         (console.log "STOP ALL")
-        (.map (get-range 10000 osc-port)
+        (.map (get-range 10000 (- osc-port 10000))
           (fn [port]
             (osc.send "127.0.0.1" port "/stop" 0)))))
 
@@ -99,6 +102,6 @@
   ((require "recursive-readdir") (path.resolve sounds-dir)
     (fn [err files] (if err (throw err))
       (set! library files)
-      (load-random-samples 8)))
+      (load-random-samples 24)))
 
 )
