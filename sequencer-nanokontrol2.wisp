@@ -9,17 +9,14 @@
 (let [
 
   midi   (require "./midi.wisp")
+  osc    (require "./osc.wisp")
+  sample (require "./sample.wisp")
   util   (require "./util.wisp")
-  chance (new (require "chance"))
-
-  ; sequence
 
   tempo  180
   phrase [0 0 0 0 0 0 0 0]
   index   0
   decay   0.5
-
-  ; controller
 
   nanokontrol
   (midi.connect-controller "nano" (fn [dt msg d1 d2]
@@ -31,21 +28,28 @@
       (set! tempo (+ 120 (* 120 (/ d2 127))))))
     (console.log dt msg d1 d2)))
 
+  launchpad
+  (midi.connect-controller "Launchpad" (fn []))
+
+  step
+  (fn []
+    ; advance step index
+    (set! index (if (< index 7) (+ index 1) 0))
+
+    ; launchpad - step inidicator
+    (.map (util.range 0 8) (fn [i] (launchpad.send [144 i 0])))
+    (launchpad.send [144 index 70])
+
+    ; drums
+
+    ; yoshimi
+    (let [note (aget phrase index)]
+      (nanokontrol.send [144 note 127])
+      (after (* 1000 decay (/ 60 tempo))
+        (nanokontrol.send [144 note 0]))))
+
 ]
 
-  (each (* 6 tempo)
-    (set! index (if (< index 7) (+ index 1) 0))
-    (let [note (aget phrase index)]
-      (nanokontrol.out.send-message [144 note 127])
-      (after (* 6 tempo decay) (nanokontrol.out.send-message [144 note 0]))))
-      ;(after 150 (nanokontrol.out.send-message [98 note 127]))))
-
-{
-
-  :init  (fn [])
-  :start (fn [])
-  :stop  (fn [])
-
-}
+  (each (* 1000 (/ 60 tempo)) (step))
 
 )

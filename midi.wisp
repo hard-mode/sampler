@@ -31,5 +31,8 @@
     m))
 
 (defn connect-controller [controller-name callback]
-  { :in  (connect-input  controller-name callback)
-    :out (connect-output controller-name) })
+  (let [i (connect-input  controller-name callback)
+        o (connect-output controller-name)]
+    { :in   i
+      :out  o
+      :send (.bind o.send-message o) }))

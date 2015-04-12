@@ -2,6 +2,8 @@
 
 (def ^:private osc (require "node-osc"))
 
+(def port 10000)
+
 (def Client osc.Client)
 
 (def clients {})
