@@ -10,14 +10,14 @@
   (let [client-name (sample.substr 0 50)
         sample-nr   (- osc.port 10000)
         sampler     (child.spawn postmelodic
-                      [ "-n" (str "Sample" sample-nr)
+                      [ "-n" (str "Sample" sample-nr "_" osc.port)
                         "-p" osc.port
                         "-c" "system:playback_1"
                         sample ] ) ]
     (set! (aget osc.clients (str "127.0.0.1" osc.port))
           (osc.Client. "127.0.0.1" osc.port))
     (set! osc.port (+ 1 osc.port)))
-  osc.port)
+  (- osc.port 1))
 
 (defn kit [root files]
   (.map files (fn [f] (path.resolve (path.join root f)))))

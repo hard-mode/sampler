@@ -1,4 +1,4 @@
-(ns sampler (:require [wisp.runtime :refer [= and str]]))
+(ns sampler (:require [wisp.runtime :refer [= and or str]]))
 
 (defmacro each [t & body]
  `(setInterval (fn [] ~@body) ~t))
@@ -13,10 +13,16 @@
   sample (require "./sample.wisp")
   util   (require "./util.wisp")
 
+  ; sequencer state
+
   tempo  180
-  phrase [0 0 0 0 0 0 0 0]
   index   0
+  phrase [0 0 0 0 0 0 0 0]
+  kicks  [1 0 0 1 0 1 0 0]
+  snares [0 0 1 0 0 0 1 0]
   decay   0.5
+
+  ; controllers
 
   nanokontrol
   (midi.connect-controller "nano" (fn [dt msg d1 d2]
@@ -31,16 +37,25 @@
   launchpad
   (midi.connect-controller "Launchpad" (fn []))
 
+  ; drums
+  kick  (sample.player "kick.wav")
+  snare (sample.player "snare.wav")
+  play  (fn [port] (osc.send "127.0.0.1" port "/play" 0 0))
+
+  ; sequencer step function
+
   step
   (fn []
     ; advance step index
     (set! index (if (< index 7) (+ index 1) 0))
 
-    ; launchpad - step inidicator
+    ; launchpad -- step indicator
     (.map (util.range 0 8) (fn [i] (launchpad.send [144 i 0])))
     (launchpad.send [144 index 70])
 
     ; drums
+    (if (aget kicks index) (play kick))
+    (if (aget snares index) (play snare))
 
     ; yoshimi
     (let [note (aget phrase index)]
