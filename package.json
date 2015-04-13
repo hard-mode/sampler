@@ -4,6 +4,9 @@
     "chance": "^0.7.3",
     "inquirer": "^0.8.2",
     "node-osc": "^0.3.0",
-    "recursive-readdir": "^1.2.1"
+    "qtimers": "^1.4.1",
+    "recursive-readdir": "^1.2.1",
+    "teoria": "^1.6.0",
+    "teoria-chord-progression": "^0.1.3"
   }
 }
