@@ -45,7 +45,6 @@
   ; drums
   kick      (sample.player "kick.wav")
   snare     (sample.player "snare.wav")
-  play      (fn [port] (osc.send "127.0.0.1" port "/play" 0 0))
 
   ; snap note to scale
   scale     (teoria.scale "f#" :minor)
@@ -69,8 +68,8 @@
     (launchpad.send [144 index 70])
 
     ; drums
-    (if (aget kicks index)  (play kick))
-    (if (aget snares index) (play snare))
+    (if (aget kicks index)  (kick.play))
+    (if (aget snares index) (snare.play))
 
     ; yoshimi
     (let [note (.midi (make-note (aget phrase index)))]
