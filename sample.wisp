@@ -12,17 +12,13 @@
   (jack.on "port-registered" (fn [port]
     (jack.connect port "system:playback_1")
     (jack.connect port "system:playback_2")))
-  (let [port        osc.port
-        client-name (sample.substr 0 50)
-        sample-nr   (- port 10000)
-        sampler     (child.spawn postmelodic
-                      [ "-n" (str "Sample" sample-nr "_" port)
-                        "-p" port
-                        sample ] ) ]
-    (set! (aget osc.clients (str "127.0.0.1" port))
-          (osc.Client. "127.0.0.1" port))
-    (set! osc.port (+ 1 port))
-    { :play (fn [cue] (osc.send "127.0.0.1" port "/play" 0 (or cue 0))) }))
+  (let [osc-client  (osc.client)
+        sample-nr   osc-client.port
+        sampler     (child.spawn postmelodic [
+                      "-n" (str "Sample" sample-nr "_" osc-client.port)
+                      "-p" osc-client.port
+                      sample ]) ]
+    { :play (fn [cue] (osc-client.send "/play" 0 (or cue 0))) }))
 
 (defn kit [root files]
   (.map files (fn [f] (path.resolve (path.join root f)))))
