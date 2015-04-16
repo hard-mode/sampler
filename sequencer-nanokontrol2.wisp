@@ -6,6 +6,9 @@
 (defmacro after [t & body]
  `(setTimeout (fn [] ~@body) ~t))
 
+(defmacro match [args & body]
+  `(if (and ~@args) (do ~@body)))
+
 (require "qtimers")
 
 (let [
@@ -30,19 +33,16 @@
   ; controllers
 
   nanokontrol (midi.connect-controller "nano" (fn [dt msg d1 d2]
-    (if (and (= msg 189) (> d1 -1) (< d1 8)) (do
-      (set! (aget phrase d1) d2)))
-    (if (and (= msg 189) (= d1 16)) (do
-      (set! decay (/ d2 127))))
-    (if (and (= msg 189) (= d1 17)) (do
-      (set! tempo (+ 120 (* 120 (/ d2 127))))))))
+    (match [(= msg 189) (> d1 -1) (< d1 8)] (set! (aget phrase d1) d2))
+    (match [(= msg 189) (= d1 16)]          (set! decay (/ d2 127)))
+    (match [(= msg 189) (= d1 17)]          (set! tempo (+ 120 (* 120 (/ d2 127)))))))
 
   launchpad (midi.connect-controller "Launchpad" (fn [dt msg d1 d2]
-    (if (and (= msg 144) (> d1 -1) (< d1 8) (= d2 127))
+    (match [(= msg 144) (> d1 -1) (< d1 8)  (= d2 127)]
       (set! jumpto d1))
-    (if (and (= msg 144) (> d1 15) (< d1 24) (= d2 127))
+    (match [(= msg 144) (> d1 15) (< d1 24) (= d2 127)]
       (set! (aget kicks (- d1 16)) (if (aget kicks (- d1 16)) 0 1)))
-    (if (and (= msg 144) (> d1 31) (< d1 40) (= d2 127))
+    (match [(= msg 144) (> d1 31) (< d1 40) (= d2 127)]
       (set! (aget snares (- d1 32)) (if (aget snares (- d1 32)) 0 1)))))
 
   ; drums
@@ -63,6 +63,11 @@
 
   ; sequencer step function
   step      (fn []
+
+    ; step jumper
+    (if (> jumpto -1) (do (set! index jumpto)
+                          (set! jumpto -1)))
+
     ; launchpad -- step indicator
     (.map (util.range 0 8) (fn [i]
       (launchpad.send [144 i        0])
@@ -82,10 +87,7 @@
         (nanokontrol.send [144 note 0])))
 
     ; advance step index
-    (if (= -1 jumpto)
-      (set! index (if (< index 7) (+ index 1) 0))
-      (do (set! index jumpto)
-          (set! jumpto -1))))
+    (set! index (if (< index 7) (+ index 1) 0)))
 
 ]
 
