@@ -21,7 +21,7 @@
 
   tempo  180
   index  0
-  index2 -1
+  jumpto -1
   phrase [0 0 0 0 0 0 0 0]
   kicks  [1 0 0 1 0 1 0 0]
   snares [0 0 1 0 0 0 1 0]
@@ -38,6 +38,8 @@
       (set! tempo (+ 120 (* 120 (/ d2 127))))))))
 
   launchpad (midi.connect-controller "Launchpad" (fn [dt msg d1 d2]
+    (if (and (= msg 144) (> d1 -1) (< d1 8) (= d2 127))
+      (set! jumpto d1))
     (if (and (= msg 144) (> d1 15) (< d1 24) (= d2 127))
       (set! (aget kicks (- d1 16)) (if (aget kicks (- d1 16)) 0 1)))
     (if (and (= msg 144) (> d1 31) (< d1 40) (= d2 127))
@@ -67,7 +69,7 @@
       (launchpad.send [144 (+ 16 i) (if (aget kicks  i) 127 0)])
       (launchpad.send [144 (+ 32 i) (if (aget snares i) 127 0)])))
     (launchpad.send [144 index 70])
-    (if (> index2 -1) (launchpad.send [144 index2 90]))
+    (if (> jumpto -1) (launchpad.send [144 jumpto 90]))
 
     ; drums
     (if (aget kicks index)  (kick.play))
@@ -80,10 +82,10 @@
         (nanokontrol.send [144 note 0])))
 
     ; advance step index
-    (if (= -1 index2)
+    (if (= -1 jumpto)
       (set! index (if (< index 7) (+ index 1) 0))
-      (do (set! index index2)
-          (set! index2 nil))))
+      (do (set! index jumpto)
+          (set! jumpto -1))))
 
 ]
 
