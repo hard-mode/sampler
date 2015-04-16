@@ -20,7 +20,8 @@
   ; sequencer state
 
   tempo  180
-  index   0
+  index  0
+  index2 -1
   phrase [0 0 0 0 0 0 0 0]
   kicks  [1 0 0 1 0 1 0 0]
   snares [0 0 1 0 0 0 1 0]
@@ -66,6 +67,7 @@
       (launchpad.send [144 (+ 16 i) (if (aget kicks  i) 127 0)])
       (launchpad.send [144 (+ 32 i) (if (aget snares i) 127 0)])))
     (launchpad.send [144 index 70])
+    (if (> index2 -1) (launchpad.send [144 index2 90]))
 
     ; drums
     (if (aget kicks index)  (kick.play))
@@ -78,7 +80,10 @@
         (nanokontrol.send [144 note 0])))
 
     ; advance step index
-    (set! index (if (< index 7) (+ index 1) 0)))
+    (if (= -1 index2)
+      (set! index (if (< index 7) (+ index 1) 0))
+      (do (set! index index2)
+          (set! index2 nil))))
 
 ]
 
