@@ -22,7 +22,7 @@
 
   ; sequencer state
 
-  tempo  180
+  tempo  90
   index  0
   jumpto -1
   phrase [0 0 0 0 0 0 0 0]
