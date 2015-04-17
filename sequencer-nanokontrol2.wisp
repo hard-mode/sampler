@@ -15,39 +15,22 @@
 
   teoria (require "teoria")
 
+  looper (require "./looper.wisp")
   midi   (require "./midi.wisp")
+  ;mixer  (require "./mixer.wisp")
   osc    (require "./osc.wisp")
   sample (require "./sample.wisp")
   util   (require "./util.wisp")
 
   ; sequencer state
 
-  tempo  90
+  tempo  170
   index  0
   jumpto -1
   phrase [0 0 0 0 0 0 0 0]
   kicks  [1 0 0 1 0 1 0 0]
   snares [0 0 1 0 0 0 1 0]
   decay   0.5
-
-  ; controllers
-
-  nanokontrol (midi.connect-controller "nano" (fn [dt msg d1 d2]
-    (match [(= msg 189) (> d1 -1) (< d1 8)] (set! (aget phrase d1) d2))
-    (match [(= msg 189) (= d1 16)]          (set! decay (/ d2 127)))
-    (match [(= msg 189) (= d1 17)]          (set! tempo (+ 120 (* 120 (/ d2 127)))))))
-
-  launchpad (midi.connect-controller "Launchpad" (fn [dt msg d1 d2]
-    (match [(= msg 144) (> d1 -1) (< d1 8)  (= d2 127)]
-      (set! jumpto d1))
-    (match [(= msg 144) (> d1 15) (< d1 24) (= d2 127)]
-      (set! (aget kicks (- d1 16)) (if (aget kicks (- d1 16)) 0 1)))
-    (match [(= msg 144) (> d1 31) (< d1 40) (= d2 127)]
-      (set! (aget snares (- d1 32)) (if (aget snares (- d1 32)) 0 1)))))
-
-  ; drums
-  kick      (sample.player "kick.wav")
-  snare     (sample.player "snare.wav")
 
   ; snap note to scale
   scale     (teoria.scale "f#" :minor)
@@ -60,6 +43,29 @@
     (if (> octave 1) (note.transpose "P8"))
     (if (> octave 2) (note.transpose "P8"))
     note))
+
+  ; drums
+  kick      (sample.player "kick.wav")
+  snare     (sample.player "snare.wav")
+
+  ; looper
+  looper    (looper.looper 8)
+
+  ; controllers
+  nanokontrol (midi.connect-controller "nano" (fn [dt msg d1 d2]
+    (match [(= msg 189) (> d1 -1) (< d1 8)] (set! (aget phrase d1) d2))
+    (match [(= msg 189) (= d1 16)]          (set! decay (/ d2 127)))
+    (match [(= msg 189) (= d1 17)]          (set! tempo (+ 120 (* 120 (/ d2 127)))))))
+
+  launchpad (midi.connect-controller "Launchpad" (fn [dt msg d1 d2]
+    (match [(= msg 144) (> d1 -1) (< d1 8)  (= d2 127)]
+      (set! jumpto d1))
+    (match [(= msg 144) (> d1 15) (< d1 24) (= d2 127)]
+      (set! (aget kicks (- d1 16)) (if (aget kicks (- d1 16)) 0 1)))
+    (match [(= msg 144) (> d1 31) (< d1 40) (= d2 127)]
+      (set! (aget snares (- d1 32)) (if (aget snares (- d1 32)) 0 1)))
+    (match [(= msg 144) (> d1 111) (< d1 120 ) (= d2 127)]
+      (set! (aget (aget looper (- d1 112)) "state") :pre-record))))
 
   ; sequencer step function
   step      (fn []
@@ -85,6 +91,13 @@
       (nanokontrol.send [144 note 127])
       (after (* 2000 decay (/ 60 tempo))
         (nanokontrol.send [144 note 0])))
+
+    ; sooperlooper - begin recording
+    (looper.map (fn [l i]
+      (if (= l.state :ready)      (launchpad.send [144 (+ 112 i) 127])))
+      (if (= l.state :pre-record) (do (launchpad.send [144 (+ 112 i) 70])
+                                      (set! l.state :recording)
+                                      (l.record))))
 
     ; advance step index
     (set! index (if (< index 7) (+ index 1) 0)))

@@ -12,7 +12,7 @@
 
 (defn player [sample]
   (let [sample-nr        next-player
-        _ (set! next-player (+ next-player 1)) ; dont overstay welcome
+        _ (set! next-player (+ next-player 1))
         osc-client       (osc.client)
         jack-client-name (str "Sample" sample-nr "_" osc-client.port)
         jack-port-name   (str jack-client-name ":output")
