@@ -33,7 +33,7 @@
   decay   0.5
 
   ; snap note to scale
-  scale     (teoria.scale "f#" :minor)
+  scale     (teoria.scale "g#" :minor)
   make-note (fn [n]
   (let [span   (/ 127 3)
         octave (Math.floor (/ n span))
@@ -93,11 +93,11 @@
         (nanokontrol.send [144 note 0])))
 
     ; sooperlooper - begin recording
-    (looper.map (fn [l i]
-      (if (= l.state :ready)      (launchpad.send [144 (+ 112 i) 127])))
-      (if (= l.state :pre-record) (do (launchpad.send [144 (+ 112 i) 70])
-                                      (set! l.state :recording)
-                                      (l.record))))
+    ;(looper.map (fn [l i]
+      ;(if (= l.state :ready)      (launchpad.send [144 (+ 112 i) 127])))
+      ;(if (= l.state :pre-record) (do (launchpad.send [144 (+ 112 i) 70])
+                                      ;(set! l.state :recording)
+                                      ;(l.record))))
 
     ; advance step index
     (set! index (if (< index 7) (+ index 1) 0)))
