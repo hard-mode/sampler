@@ -13,7 +13,6 @@
   ([host port]                         ; now we talkin
     (let [id (str host ":" port)
           c  (aget clients id)]
-      (console.log "CLIENT" host port)
       (if (not c) (set! c (osc.Client. host port)))
       { :send (fn [& args] (c.send.apply c args))
         :host host
