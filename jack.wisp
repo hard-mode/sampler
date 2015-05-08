@@ -1,9 +1,13 @@
 (ns jack (:require [wisp.runtime :refer [str =]]))
 
-(def ^:private native (require "node-jack"))
+(def ^:private sanity (require "jack-sanity"))
+
 (set! session.persist.jack (or session.persist.jack
-  { :client      (native.Client. "hardmode-session") 
-    :connections []}))
+  (let [logger (sanity.createLogger)
+        app    (sanity.createApplication logger)]
+    { :app         app
+      :logger      logger
+      :connections []})))
 
 (def ^:private client session.persist.jack.client)
 
@@ -12,4 +16,4 @@
 (defn connect    [port-a port-b])
 (defn disconnect [port-a port-b])
 
-(client.on "port-registered" (fn [] (console.log "port reg")))
+;(client.on "port-registered" (fn [] (console.log "port reg")))

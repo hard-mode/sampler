@@ -15,7 +15,7 @@
 
   teoria (require "teoria")
 
-  looper (require "./looper.wisp")
+  ;sooper (require "./looper.wisp")
   midi   (require "./midi.wisp")
   ;mixer  (require "./mixer.wisp")
   osc    (require "./osc.wisp")
@@ -49,15 +49,15 @@
   snare     (sample.player "snare.wav")
 
   ; looper
-  looper    (looper.looper 8)
+  ;looper    (sooper.looper 8)
 
   ; controllers
-  nanokontrol (midi.connect-controller "nano" (fn [dt msg d1 d2]
+  nanokontrol (midi.connect-controller "a2j:nano" (fn [dt msg d1 d2]
     (match [(= msg 189) (> d1 -1) (< d1 8)] (set! (aget phrase d1) d2))
     (match [(= msg 189) (= d1 16)]          (set! decay (/ d2 127)))
     (match [(= msg 189) (= d1 17)]          (set! tempo (+ 120 (* 120 (/ d2 127)))))))
 
-  launchpad (midi.connect-controller "Launchpad" (fn [dt msg d1 d2]
+  launchpad (midi.connect-controller "a2j:Launchpad" (fn [dt msg d1 d2]
     (match [(= msg 144) (> d1 -1) (< d1 8)  (= d2 127)]
       (set! jumpto d1))
     (match [(= msg 144) (> d1 15) (< d1 24) (= d2 127)]
