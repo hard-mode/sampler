@@ -16,15 +16,15 @@
   teoria (require "teoria")
 
   ;sooper (require "./looper.wisp")
-  midi   (require "./midi.wisp")
+  midi   (require "./lib/midi.wisp")
   ;mixer  (require "./mixer.wisp")
-  osc    (require "./osc.wisp")
-  sample (require "./sample.wisp")
-  util   (require "./util.wisp")
+  osc    (require "./lib/osc.wisp")
+  sample (require "./lib/sample.wisp")
+  util   (require "./lib/util.wisp")
 
   ; sequencer state
 
-  tempo  170
+  tempo  140
   index  0
   jumpto -1
   phrase [0 0 0 0 0 0 0 0]
@@ -45,8 +45,8 @@
     note))
 
   ; drums
-  kick      (sample.player "kick.wav")
-  snare     (sample.player "snare.wav")
+  kick      (sample.player "./samples/kick.wav")
+  snare     (sample.player "./samples/snare.wav")
 
   ; looper
   ;looper    (sooper.looper 8)

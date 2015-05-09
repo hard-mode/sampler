@@ -15,12 +15,18 @@
         osc-client       (osc.client)
         jack-client-name (str "Sample" sample-nr "_" osc-client.port)
         jack-port-name   (str jack-client-name ":output")
-        connect          (fn [port] (if (= port jack-port-name) (do
-                           (jack.connect port "system:playback_1")
-                           (jack.connect port "system:playback_2"))))]
-    (spawn (str "postmelodic-" sample-nr)
-      postmelodic [ "-n" jack-client-name "-p" osc-client.port sample ])
-    { :play (fn [cue] (osc-client.send "/play" 0 (or cue 0))) }))
+        jack-client      (jack.client jack-client-name) 
+        jack-process     nil]
+    (jack-client.on "online" (fn []
+      (console.log "postmelodic" sample-nr "online as" jack-client-name "online")
+      (jack-client.connect jack.system)))
+    (set! jack-process (jack.spawn postmelodic "-n" jack-client-name "-p" osc-client.port sample))
+    ;(jack-process.open)
+    ;(set! jack-process
+      ;(spawn (str "postmelodic-" sample-nr)
+        ;postmelodic [ "-n" jack-client-name "-p" osc-client.port sample ]))
+    { :play (fn [cue]    (osc-client.send "/play" 0 (or cue 0)))
+      :kill (fn [signal] (jack-process.kill signal)) }))
 
 (defn kit [root files]
   (.map files (fn [f] (path.resolve (path.join root f)))))

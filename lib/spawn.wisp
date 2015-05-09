@@ -5,6 +5,7 @@
 (set! session.persist.spawn (or session.persist.spawn {}))
 
 (defn spawn [id & args]
+  (log spawn id args)
   (or
     (aget session.persist.spawn id)
     (let [p (child.spawn.apply null args)]
