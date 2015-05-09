@@ -29,6 +29,10 @@
 (defn combine [client proc]
   (jack.combine client proc))
 
+(defn force-connect [output-c output-p input-c input-p]
+  (console.log "jack.force-connect" output-c output-p input-c input-p)
+  (jack.dbus.ConnectPortsByName output-c output-p input-c input-p))
+
 (def system (jack.create-client "system"))
 
 ;(client.on "port-registered" (fn [] (console.log "port reg")))

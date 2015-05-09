@@ -1,6 +1,9 @@
 (ns midi (:require [wisp.runtime :refer [=]]))
 
+(def ^:private jack (require "./jack"))
 (def ^:private midi (require "midi"))
+
+(jack.spawn "a2jmidid" "-e")
 
 (defn get-port-by-name [midi-io port-match callback]
   (let [port-count (midi-io.get-port-count)]
