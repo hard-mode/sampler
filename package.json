@@ -2,6 +2,7 @@
   "dependencies": {
     "blessed": "0.0.51",
     "chance": "^0.7.3",
+    "eventemitter2": "^0.4.14",
     "inquirer": "^0.8.2",
     "qtimers": "^1.4.1",
     "recursive-readdir": "^1.2.1",

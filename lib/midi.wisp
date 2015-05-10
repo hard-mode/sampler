@@ -5,6 +5,10 @@
 
 (jack.spawn "a2jmidid" "-e")
 
+(set! session.persist.midi (or session.persist.midi
+  { :input  (new midi.input)
+    :output (new midi.output) }))
+
 (defn get-port-by-name [midi-io port-match callback]
   (let [port-count (midi-io.get-port-count)]
     (loop [port-number 0]
@@ -16,14 +20,14 @@
             (recur (+ port-number 1))))))))
 
 (defn connect-output [port-name]
-  (let [m (new midi.output)]
+  (let [m session.persist.midi.output]
     (get-port-by-name m port-name (fn [port-number]
       (console.log "OUT ::" port-number (m.get-port-name port-number))
       (m.open-port port-number)))
     m))
 
 (defn connect-input [port-name callback]
-  (let [m (new midi.input)]
+  (let [m session.persist.midi.input]
     (get-port-by-name m port-name (fn [port-number]
       (console.log " IN ::" port-number (m.get-port-name port-number))
       (m.open-port port-number)
