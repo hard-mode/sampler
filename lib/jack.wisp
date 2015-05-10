@@ -52,44 +52,44 @@
         events   session.persist.jack.events]
     (patchbay.on
       "ClientAppeared"
-      (fn [] (let [client-name (aget arguments "2")]
+      (fn [& args] (let [client-name (aget args "2")]
         (log (str "client " client-name " appeared"))
         (update (fn [] (events.emit "client-online" client-name))))))
     (patchbay.on
       "ClientDisappeared"
-      (fn [] (let [client-name (aget arguments "2")]
+      (fn [& args] (let [client-name (aget args "2")]
         (log (str "client " client-name " disappeared"))
         (update (fn [] (events.emit "client-offline" client-name))))))
     (patchbay.on
       "PortAppeared"
-      (fn [] (let [client-name (aget arguments "2")
-                   port-name   (aget arguments "4")]
+      (fn [& args] (let [client-name (aget args "2")
+                         port-name   (aget args "4")]
         (log (str "port " client-name ":" port-name " appeared"))
         (update (fn [] (events.emit "port-online" client-name port-name))))))
     (patchbay.on
       "PortDisappeared"
-      (fn [] (let [client-name (aget arguments "2")
-                   port-name   (aget arguments "4")]
+      (fn [& args] (let [client-name (aget args "2")
+                         port-name   (aget args "4")]
         (log (str "port " client-name ":" port-name " disappeared"))
         (update (fn [] (events.emit "port-offline" client-name port-name))))))
     (patchbay.on
       "PortsConnected"
-      (fn [] (let [out-client-name (aget arguments "2")
-                   out-port-name   (aget arguments "4")
-                   in-client-name  (aget arguments "6")
-                   in-port-name    (aget arguments "8")]
+      (fn [& args] (let [out-client-name (aget args "2")
+                         out-port-name   (aget args "4")
+                         in-client-name  (aget args "6")
+                         in-port-name    (aget args "8")]
         (log (str "ports " out-client-name ":" out-port-name
                   " and "  in-client-name  ":" in-port-name  " connected"))
         (update (fn [] (events.emit "connected" out-client-name out-port-name
                                                 in-client-name  in-port-name))))))
     (patchbay.on
       "PortsDisconnected"
-      (fn [] (let [out-client-name (aget arguments "2")
-                   out-port-name   (aget arguments "4")
-                   in-client-name  (aget arguments "6")
-                   in-port-name    (aget arguments "8")]
+      (fn [& args] (let [out-client-name (aget args "2")
+                         out-port-name   (aget args "4")
+                         in-client-name  (aget args "6")
+                         in-port-name    (aget args "8")]
         (log (str "ports " out-client-name ":" out-port-name
-                  " and "  in-client-name  ":" in-port-name  " connected"))
+                  " and "  in-client-name  ":" in-port-name  " disconnected"))
         (update (fn [] (events.emit "disconnected" out-client-name out-port-name
                                                    in-client-name  in-port-name))))))
     (patchbay.on "GraphChanged"
