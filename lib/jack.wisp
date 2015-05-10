@@ -1,7 +1,8 @@
 (ns jack (:require [wisp.runtime :refer [str = not &]]))
 
-(def ^:private dbus    (require "dbus-native"))
 (def ^:private bitwise (require "./bitwise.js"))
+(def ^:private event2  (require "eventemitter2"))
+(def ^:private dbus    (require "dbus-native"))
 
 (defn parse-ports [data]
   (let [ports {}]
@@ -36,7 +37,8 @@
             input-port    (aget input-client.ports             (aget connection 6))]
         (set! (aget connections (aget connection 8)
           { :output output-port
-            :input  input-port })))))))
+            :input  input-port })))))
+  connections))
 
 (defn update [cb]
   (session.persist.jack.patchbay.GetGraph "0" (fn [err graph clients connections] 
@@ -45,37 +47,73 @@
     (set! session.persist.jack.connections (parse-connections connections))
     (if cb (cb)))))
 
-(if (not session.persist.jack)
-  (let [dbus               (require "dbus-native")
-        dbus-name          "org.jackaudio.service"
-        dbus-path          "/org/jackaudio/Controller"
-        dbus-service       (.get-service (dbus.session-bus) dbus-name)]
+(defn bind []
+  (let [patchbay session.persist.jack.patchbay
+        events   session.persist.jack.events]
+    (patchbay.on
+      "ClientAppeared"
+      (fn [] (let [client-name (aget arguments "2")]
+        (log (str "client " client-name " appeared"))
+        (update (fn [] (events.emit "client-online" client-name))))))
+    (patchbay.on
+      "ClientDisappeared"
+      (fn [] (let [client-name (aget arguments "2")]
+        (log (str "client " client-name " disappeared"))
+        (update (fn [] (events.emit "client-offline" client-name))))))
+    (patchbay.on
+      "PortAppeared"
+      (fn [] (let [client-name (aget arguments "2")
+                   port-name   (aget arguments "4")]
+        (log (str "port " client-name ":" port-name " appeared"))
+        (update (fn [] (events.emit "port-online" client-name port-name))))))
+    (patchbay.on
+      "PortDisappeared"
+      (fn [] (let [client-name (aget arguments "2")
+                   port-name   (aget arguments "4")]
+        (log (str "port " client-name ":" port-name " disappeared"))
+        (update (fn [] (events.emit "port-offline" client-name port-name))))))
+    (patchbay.on
+      "PortsConnected"
+      (fn [] (let [out-client-name (aget arguments "2")
+                   out-port-name   (aget arguments "4")
+                   in-client-name  (aget arguments "6")
+                   in-port-name    (aget arguments "8")]
+        (log (str "ports " out-client-name ":" out-port-name
+                  " and "  in-client-name  ":" in-port-name  " connected"))
+        (update (fn [] (events.emit "connected" out-client-name out-port-name
+                                                in-client-name  in-port-name))))))
+    (patchbay.on
+      "PortsDisconnected"
+      (fn [] (let [out-client-name (aget arguments "2")
+                   out-port-name   (aget arguments "4")
+                   in-client-name  (aget arguments "6")
+                   in-port-name    (aget arguments "8")]
+        (log (str "ports " out-client-name ":" out-port-name
+                  " and "  in-client-name  ":" in-port-name  " connected"))
+        (update (fn [] (events.emit "disconnected" out-client-name out-port-name
+                                                   in-client-name  in-port-name))))))
+    (patchbay.on "GraphChanged"
+      (fn []
+        (log (str "graph changed"))))))
+
+(defn init []
+  (let [dbus         (require "dbus-native")
+        dbus-name    "org.jackaudio.service"
+        dbus-path    "/org/jackaudio/Controller"
+        dbus-service (.get-service (dbus.session-bus) dbus-name)]
 		(dbus-service.get-interface dbus-path "org.jackaudio.JackControl"
-      (fn [err iface] (if err (throw err))
+      (fn [err control] (if err (throw err))
         (log "connected to jack control")
-        (set! session.persist.jack { :control iface })
-        (iface.StartServer (fn []
+        (set! session.persist.jack { :control control :events (event2.EventEmitter2.) })
+        (control.StartServer (fn []
           (log "jack server started")
 			    (dbus-service.get-interface dbus-path "org.jackaudio.JackPatchbay"
-            (fn [err iface] (if err (throw err))
+            (fn [err patchbay] (if err (throw err))
               (log "connected to jack patchbay")
-              (set! session.persist.jack.patchbay iface)
-              (update (fn []
-                (iface.on "ClientAppeared"    (fn []
-                  (log (str "client " (aget arguments 2) " appeared"))))
-                (iface.on "ClientDisappeared" (fn []
-                  (log (str "client " (aget arguments 2) " disappeared"))))
-                (iface.on "PortAppeared"      (fn []
-                  (log (str "port " (aget arguments 2) ":" (aget arguments 4) " appeared"))))
-                (iface.on "PortDisappeared"   (fn []
-                  (log (str "port " (aget arguments 2) ":" (aget arguments 4) " disappeared"))))
-                (iface.on "PortsConnected"    (fn []
-                  (log (str "ports connected"))))
-                (iface.on "PortsDisconnected" (fn []
-                  (log (str "ports disconnected"))))
-                (iface.on "GraphChanged"      (fn []
-                  (log (str "graph changed"))))))))))))))
+              (set! session.persist.jack.patchbay patchbay)
+              (update bind)))))))))
 
+(if (not session.persist.jack) (init))
 
 ; only execute spawns after the session has opened
 ;(def ^:private jack session.persist.jack)
