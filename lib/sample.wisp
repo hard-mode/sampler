@@ -17,15 +17,16 @@
         jack-client-name  (str "Sample" sample-nr "_" osc-client.port)
         jack-port-name    (str jack-client-name ":output")
 
-        jack-client       (jack.client jack-client-name)
-        jack-port         (jack-client.create-client "output")
-        _                 (set! jack-port.channel 1)
-        _                 (jack-client.once "online" (fn []
-                            (console.log "postmelodic" sample-nr "online as" jack-client-name)
-			                      (jack.force-connect jack-client-name "output" "system" "playback_1")
-			                      (jack.force-connect jack-client-name "output" "system" "playback_2")))
+        ;jack-client       (jack.client jack-client-name)
+        ;jack-port         (jack-client.create-client "output")
+        ;_                 (set! jack-port.channel 1)
+        ;_                 (jack-client.once "online" (fn []
+                            ;(console.log "postmelodic" sample-nr "online as" jack-client-name)
+														;(jack.force-connect jack-client-name "output" "system" "playback_1")
+														;(jack.force-connect jack-client-name "output" "system" "playback_2")))
 
-        jack-process      (jack.spawn postmelodic "-n" jack-client-name "-p" osc-client.port sample)]
+        jack-process      (jack.spawn jack-client-name
+                            postmelodic "-n" jack-client-name "-p" osc-client.port sample)]
 
     { :play (fn [cue]    (osc-client.send "/play" 0 (or cue 0)))
       :kill (fn [signal] (jack-process.kill signal)) }))

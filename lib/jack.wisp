@@ -1,8 +1,11 @@
 (ns jack (:require [wisp.runtime :refer [str = not &]]))
 
-(def ^:private bitwise (require "./bitwise.js"))
-(def ^:private event2  (require "eventemitter2"))
-(def ^:private dbus    (require "dbus-native"))
+(def ^:private bitwise  (require "./bitwise.js"))
+(def ^:private dbus     (require "dbus-native"))
+(def ^:private event2   (require "eventemitter2"))
+(def ^:private do-spawn (require "./spawn.wisp"))
+
+(def started false)
 
 (defn parse-ports [data]
   (let [ports {}]
@@ -52,59 +55,62 @@
         events   session.persist.jack.events]
     (patchbay.on
       "ClientAppeared"
-      (fn [& args] (let [client-name (aget args "2")]
-        (log (str "client " client-name " appeared"))
-        (update (fn [] (events.emit "client-online" client-name))))))
+      (fn [& args] (let [client (aget args 1)]
+        (log (str "client " client " appeared"))
+        (update (fn [] (events.emit "client-online" client))))))
     (patchbay.on
       "ClientDisappeared"
-      (fn [& args] (let [client-name (aget args "2")]
-        (log (str "client " client-name " disappeared"))
-        (update (fn [] (events.emit "client-offline" client-name))))))
+      (fn [& args] (let [client (aget args 1)]
+        (log (str "client " client " disappeared"))
+        (update (fn [] (events.emit "client-offline" client))))))
     (patchbay.on
       "PortAppeared"
-      (fn [& args] (let [client-name (aget args "2")
-                         port-name   (aget args "4")]
-        (log (str "port " client-name ":" port-name " appeared"))
-        (update (fn [] (events.emit "port-online" client-name port-name))))))
+      (fn [& args] (let [client (aget args 1)
+                         port   (aget args 3)]
+        (log (str "port " client ":" port " appeared"))
+        (update (fn [] (events.emit "port-online" client port))))))
     (patchbay.on
       "PortDisappeared"
-      (fn [& args] (let [client-name (aget args "2")
-                         port-name   (aget args "4")]
-        (log (str "port " client-name ":" port-name " disappeared"))
-        (update (fn [] (events.emit "port-offline" client-name port-name))))))
+      (fn [& args] (let [client (aget args 1)
+                         port   (aget args 3)]
+        (log (str "port " client ":" port " disappeared"))
+        (update (fn [] (events.emit "port-offline" client port))))))
     (patchbay.on
       "PortsConnected"
-      (fn [& args] (let [out-client-name (aget args "2")
-                         out-port-name   (aget args "4")
-                         in-client-name  (aget args "6")
-                         in-port-name    (aget args "8")]
-        (log (str "ports " out-client-name ":" out-port-name
-                  " and "  in-client-name  ":" in-port-name  " connected"))
-        (update (fn [] (events.emit "connected" out-client-name out-port-name
-                                                in-client-name  in-port-name))))))
+      (fn [& args] (let [out-client (aget args 1)
+                         out-port   (aget args 3)
+                         in-client  (aget args 5)
+                         in-port    (aget args 7)]
+        (log (str "ports " out-client ":" out-port
+                  " and "  in-client  ":" in-port  " connected"))
+        (update (fn [] (events.emit "connected" out-client out-port
+                                                in-client  in-port))))))
     (patchbay.on
       "PortsDisconnected"
-      (fn [& args] (let [out-client-name (aget args "2")
-                         out-port-name   (aget args "4")
-                         in-client-name  (aget args "6")
-                         in-port-name    (aget args "8")]
-        (log (str "ports " out-client-name ":" out-port-name
-                  " and "  in-client-name  ":" in-port-name  " disconnected"))
-        (update (fn [] (events.emit "disconnected" out-client-name out-port-name
-                                                   in-client-name  in-port-name))))))
+      (fn [& args] (let [out-client (aget args 1)
+                         out-port   (aget args 3)
+                         in-client  (aget args 5)
+                         in-port    (aget args 7)]
+        (log (str "ports " out-client ":" out-port
+                  " and "  in-client  ":" in-port  " disconnected"))
+        (update (fn [] (events.emit "disconnected" out-client out-port
+                                                   in-client  in-port))))))
     (patchbay.on "GraphChanged"
       (fn []
-        (log (str "graph changed"))))))
+        (log (str "graph changed"))))
+    (set! started true)
+    (events.emit "started")))
 
 (defn init []
   (let [dbus         (require "dbus-native")
         dbus-name    "org.jackaudio.service"
         dbus-path    "/org/jackaudio/Controller"
         dbus-service (.get-service (dbus.session-bus) dbus-name)]
+    (set! session.persist.jack { :events (event2.EventEmitter2.) })
 		(dbus-service.get-interface dbus-path "org.jackaudio.JackControl"
       (fn [err control] (if err (throw err))
         (log "connected to jack control")
-        (set! session.persist.jack { :control control :events (event2.EventEmitter2.) })
+        (set! session.persist.jack.control control)
         (control.StartServer (fn []
           (log "jack server started")
 			    (dbus-service.get-interface dbus-path "org.jackaudio.JackPatchbay"
@@ -113,38 +119,19 @@
               (set! session.persist.jack.patchbay patchbay)
               (update bind)))))))))
 
+; persist and shorthand
 (if (not session.persist.jack) (init))
+(def ^:private jack session.persist.jack)
 
 ; only execute spawns after the session has opened
-;(def ^:private jack session.persist.jack)
-(def ^:private jack {
-  :open (fn []) :once (fn []) :on (fn []) :createClient (fn [] { :once (fn []) :createClient (fn [] {}) })
-  :spawn (fn []) :force-connect (fn []) })
-(def ^:private is-open false)
-(jack.on "open" (fn [] (set! is-open true)))
-(jack.open)
+(defn spawn [id & args]
+  (args.unshift id)
+  (if started
+    (do-spawn.apply nil args)
+    (jack.events.once "started" (fn [] (do-spawn.apply nil args)))))
 
-(defn- do-spawn [cmd args]
-  (let [proc (jack.create-process cmd args)]
-    (proc.open)
-    proc))
+(defn connect-by-name [output-c output-p input-c input-p]
+  (jack.patchbay.ConnectPortsByName output-c output-p input-c input-p))
 
-(defn spawn [cmd & args]
-  (console.log "jack.spawn" cmd args is-open)
-  (if is-open
-    (do-spawn cmd args)
-    (jack.once "open" (fn [] (do-spawn cmd args)))))
-
-(defn client [client-name]
-  (jack.create-client client-name))
-
-(defn combine [client proc]
-  (jack.combine client proc))
-
-(defn force-connect [output-c output-p input-c input-p]
-  (console.log "jack.force-connect" output-c output-p input-c input-p)
-  (jack.dbus.ConnectPortsByName output-c output-p input-c input-p))
-
-(def system (jack.create-client "system"))
-
-;(client.on "port-registered" (fn [] (console.log "port reg")))
+(defn connect-by-id [output-c output-p input-c input-p]
+  (jack.patchbay.ConnectPortsByID output-c output-p input-c input-p))

@@ -3,7 +3,7 @@
 (def ^:private jack (require "./jack"))
 (def ^:private midi (require "midi"))
 
-(jack.spawn "a2jmidid" "-e")
+(jack.spawn "a2j" "a2jmidid" "-e")
 
 (set! session.persist.midi (or session.persist.midi
   { :input  (new midi.input)

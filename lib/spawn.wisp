@@ -5,10 +5,10 @@
 (set! session.persist.spawn (or session.persist.spawn {}))
 
 (defn spawn [id & args]
-  (log spawn id args)
+  (log "spawn" id args)
   (or
     (aget session.persist.spawn id)
-    (let [p (child.spawn.apply null args)]
+    (let [p (child.spawn.apply null [(aget args 0) (args.slice 1)])]
       (set! (aget session.persist.spawn id) p)
       p)))
 
