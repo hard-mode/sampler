@@ -1,8 +1,11 @@
 (ns midi (:require [wisp.runtime :refer [=]]))
 
-(def ^:private jack (require "./jack"))
+(def ^:private jack (require "./jack.wisp"))
 (def ^:private midi (require "midi"))
 
+;(def ^:private a2j-started false)
+(jack.state.events.on "client-online" (fn [& args]
+  (console.log "CLIENT ONLINE" args)))
 (jack.spawn "a2j" "a2jmidid" "-e")
 
 (set! session.persist.midi (or session.persist.midi

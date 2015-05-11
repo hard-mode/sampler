@@ -5,16 +5,26 @@
 (def ^:private event2   (require "eventemitter2"))
 (def ^:private do-spawn (require "./spawn.wisp"))
 
-(def started false)
+; initialize state
+(set! session.persist.jack (or session.persist.jack
+  { :started     false
+    :events      (event2.EventEmitter2.)
+    :clients     {}
+    :connections {} }))
 
+; shorthand
+(def state session.persist.jack)
+
+; parsers
 (defn parse-ports [data]
   (let [ports {}]
     (data.map (fn [port]
-      (let [port-number (aget port 0)
-            port-name   (aget port 1)
-            test-bit    (fn [bit] (= bit (bitwise.and (aget port 2) bit)))]
-        (set! (aget ports port-number)
-          { :name       port-name
+      (let [port-id   (aget port 0)
+            port-name (aget port 1)
+            test-bit  (fn [bit] (= bit (bitwise.and (aget port 2) bit)))]
+        (set! (aget ports port-name)
+          { :id         port-id
+            :name       port-name
             :canMonitor (test-bit 0x8)
             :isInput    (test-bit 0x1)
             :isOutput   (test-bit 0x2)
@@ -26,33 +36,36 @@
 (defn parse-clients [data]
   (let [clients {}]
     (data.map (fn [client]
-      (set! (aget clients (aget client 0))
-        { :name  (aget client 1)
+      (set! (aget clients (aget client 1))
+        { :id    (aget client 0)
+          :name  (aget client 1)
           :ports (parse-ports (aget client 2)) })))
     clients))
 
 (defn parse-connections [data]
   (let [connections {}]
     (data.map (fn [connection]
-      (let [output-client (aget session.persist.jack.clients (aget connection 0))
-            output-port   (aget output-client.ports          (aget connection 2))
-            input-client  (aget session.persist.jack.clients (aget connection 4))
-            input-port    (aget input-client.ports             (aget connection 6))]
+      (let [output-client (aget state.clients       (aget connection 0))
+            output-port   (aget output-client.ports (aget connection 2))
+            input-client  (aget state.clients       (aget connection 4))
+            input-port    (aget input-client.ports  (aget connection 6))]
         (set! (aget connections (aget connection 8)
           { :output output-port
             :input  input-port })))))
   connections))
 
+; state updater
 (defn update [cb]
-  (session.persist.jack.patchbay.GetGraph "0" (fn [err graph clients connections] 
+  (state.patchbay.GetGraph "0" (fn [err graph clients connections] 
     (if err (throw err))
-    (set! session.persist.jack.clients     (parse-clients clients))
-    (set! session.persist.jack.connections (parse-connections connections))
+    (set! state.clients     (parse-clients     clients))
+    (set! state.connections (parse-connections connections))
     (if cb (cb)))))
 
+; event handlers
 (defn bind []
-  (let [patchbay session.persist.jack.patchbay
-        events   session.persist.jack.events]
+  (let [patchbay state.patchbay
+        events   state.events]
     (patchbay.on
       "ClientAppeared"
       (fn [& args] (let [client (aget args 1)]
@@ -101,37 +114,37 @@
     (set! started true)
     (events.emit "started")))
 
+; initializer
 (defn init []
   (let [dbus         (require "dbus-native")
         dbus-name    "org.jackaudio.service"
         dbus-path    "/org/jackaudio/Controller"
         dbus-service (.get-service (dbus.session-bus) dbus-name)]
-    (set! session.persist.jack { :events (event2.EventEmitter2.) })
 		(dbus-service.get-interface dbus-path "org.jackaudio.JackControl"
       (fn [err control] (if err (throw err))
         (log "connected to jack control")
-        (set! session.persist.jack.control control)
+        (set! state.control control)
         (control.StartServer (fn []
           (log "jack server started")
 			    (dbus-service.get-interface dbus-path "org.jackaudio.JackPatchbay"
             (fn [err patchbay] (if err (throw err))
               (log "connected to jack patchbay")
-              (set! session.persist.jack.patchbay patchbay)
+              (set! state.patchbay patchbay)
               (update bind)))))))))
 
-; persist and shorthand
-(if (not session.persist.jack) (init))
-(def ^:private jack session.persist.jack)
+; autostart
+(if (not state.started) (init))
 
 ; only execute spawns after the session has opened
 (defn spawn [id & args]
   (args.unshift id)
-  (if started
+  (if state.started
     (do-spawn.apply nil args)
-    (jack.events.once "started" (fn [] (do-spawn.apply nil args)))))
+    (state.events.once "started" (fn [] (do-spawn.apply nil args)))))
 
+; connectors
 (defn connect-by-name [output-c output-p input-c input-p]
-  (jack.patchbay.ConnectPortsByName output-c output-p input-c input-p))
+  (state.patchbay.ConnectPortsByName output-c output-p input-c input-p))
 
 (defn connect-by-id [output-c output-p input-c input-p]
-  (jack.patchbay.ConnectPortsByID output-c output-p input-c input-p))
+  (state.patchbay.ConnectPortsByID output-c output-p input-c input-p))
