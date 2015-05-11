@@ -17,7 +17,7 @@
         jack-client-name  (str "Sample" sample-nr "_" osc-client.port)
         jack-port-name    (str jack-client-name ":output")
 
-        ;jack-client       (jack.client jack-client-name)
+        jack-client       (jack.client jack-client-name)
         ;jack-port         (jack-client.create-client "output")
         ;_                 (set! jack-port.channel 1)
         ;_                 (jack-client.once "online" (fn []
@@ -28,8 +28,13 @@
         jack-process      (jack.spawn jack-client-name
                             postmelodic "-n" jack-client-name "-p" osc-client.port sample)]
 
-    { :play (fn [cue]    (osc-client.send "/play" 0 (or cue 0)))
-      :kill (fn [signal] (jack-process.kill signal)) }))
+    (jack-client.events.once "started" (fn []
+      (jack.connect-by-name jack-client-name "output" "system" "playback_1")
+      (jack.connect-by-name jack-client-name "output" "system" "playback_2")))
+
+    { :client jack-client
+      :play   (fn [cue]    (osc-client.send "/play" 0 (or cue 0)))
+      :kill   (fn [signal] (jack-process.kill signal)) }))
 
 (defn kit [root files]
   (.map files (fn [f] (path.resolve (path.join root f)))))

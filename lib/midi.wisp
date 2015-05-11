@@ -5,7 +5,6 @@
 
 (def ^:private a2j (jack.client "Sample0_10000"))
 (jack.spawn "a2j" "a2jmidid" "-e")
-(a2j.events.on "started" (fn [] (console.log "WOOT")))
 
 (set! session.persist.midi (or session.persist.midi
   { :input  (new midi.input)
