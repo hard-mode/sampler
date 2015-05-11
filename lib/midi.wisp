@@ -11,7 +11,7 @@
   { :input  (new midi.input)
     :output (new midi.output) }))
 
-(defn get-port-by-name [midi-io port-match callback]
+(defn do-get-port-by-name [midi-io port-match callback]
   (let [port-count (midi-io.get-port-count)]
     (loop [port-number 0]
       (if (< port-number port-count)
@@ -20,6 +20,11 @@
           (if (= 0 (port-name.index-of port-match))
             (callback port-number)
             (recur (+ port-number 1))))))))
+
+(defn get-port-by-name [midi-io port-match callback]
+  (if a2j.online
+    (do-get-port-by-name midi-io port-match callback)
+    (a2j.events.once "started" (fn [] (do-get-port-by-name midi-io port-match callback)))))
 
 (defn connect-output [port-name]
   (let [m session.persist.midi.output]
