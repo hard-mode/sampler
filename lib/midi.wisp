@@ -3,10 +3,9 @@
 (def ^:private jack (require "./jack.wisp"))
 (def ^:private midi (require "midi"))
 
-(def ^:private a2j-started false)
-(jack.state.events.on "client-online" (fn [client-name]
-  (if (= client-name "a2j") (set! a2j-started true))))
+(def ^:private a2j (jack.client "Sample0_10000"))
 (jack.spawn "a2j" "a2jmidid" "-e")
+(a2j.events.on "started" (fn [] (console.log "WOOT")))
 
 (set! session.persist.midi (or session.persist.midi
   { :input  (new midi.input)

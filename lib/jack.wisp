@@ -148,3 +148,33 @@
 
 (defn connect-by-id [output-c output-p input-c input-p]
   (state.patchbay.ConnectPortsByID output-c output-p input-c input-p))
+
+; lookups
+(defn find-client [client-name]
+  (.indexOf (Object.keys state.clients) client-name))
+
+(defn client-found [client-name]
+  (not (= -1 (find-client client-name))))
+
+; expectations
+(defn client [client-name]
+  (let [jack    state
+
+        state   { :online  false
+                  :events  (event2.EventEmitter2.)
+                  :name    client-name }
+
+        start     (fn []  (set! state.online true)
+                          (state.events.emit "started"))
+        starter   nil
+
+        finder    (fn []  (if (client-found client-name)
+                            (start)
+                            (jack.events.once "client-online" starter)))]
+
+    (set! starter (fn [c]
+      (if (= c client-name) (start)
+                            (jack.events.once "client-online" starter))))
+
+    (if jack.started (finder) (jack.events.on "started" finder))
+    state))
