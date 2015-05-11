@@ -45,10 +45,10 @@
 (defn parse-connections [data]
   (let [connections {}]
     (data.map (fn [connection]
-      (let [output-client (aget state.clients       (aget connection 0))
-            output-port   (aget output-client.ports (aget connection 2))
-            input-client  (aget state.clients       (aget connection 4))
-            input-port    (aget input-client.ports  (aget connection 6))]
+      (let [output-client (aget state.clients       (aget connection 1))
+            output-port   (aget output-client.ports (aget connection 3))
+            input-client  (aget state.clients       (aget connection 5))
+            input-port    (aget input-client.ports  (aget connection 7))]
         (set! (aget connections (aget connection 8)
           { :output output-port
             :input  input-port })))))
@@ -68,42 +68,42 @@
         events   state.events]
     (patchbay.on
       "ClientAppeared"
-      (fn [& args] (let [client (aget args 1)]
+      (fn [& args] (let [client (aget args 2)]
         (log (str "client " client " appeared"))
         (update (fn [] (events.emit "client-online" client))))))
     (patchbay.on
       "ClientDisappeared"
-      (fn [& args] (let [client (aget args 1)]
+      (fn [& args] (let [client (aget args 2)]
         (log (str "client " client " disappeared"))
         (update (fn [] (events.emit "client-offline" client))))))
     (patchbay.on
       "PortAppeared"
-      (fn [& args] (let [client (aget args 1)
-                         port   (aget args 3)]
+      (fn [& args] (let [client (aget args 2)
+                         port   (aget args 4)]
         (log (str "port " client ":" port " appeared"))
         (update (fn [] (events.emit "port-online" client port))))))
     (patchbay.on
       "PortDisappeared"
-      (fn [& args] (let [client (aget args 1)
-                         port   (aget args 3)]
+      (fn [& args] (let [client (aget args 2)
+                         port   (aget args 4)]
         (log (str "port " client ":" port " disappeared"))
         (update (fn [] (events.emit "port-offline" client port))))))
     (patchbay.on
       "PortsConnected"
-      (fn [& args] (let [out-client (aget args 1)
-                         out-port   (aget args 3)
-                         in-client  (aget args 5)
-                         in-port    (aget args 7)]
+      (fn [& args] (let [out-client (aget args 2)
+                         out-port   (aget args 4)
+                         in-client  (aget args 6)
+                         in-port    (aget args 8)]
         (log (str "ports " out-client ":" out-port
                   " and "  in-client  ":" in-port  " connected"))
         (update (fn [] (events.emit "connected" out-client out-port
                                                 in-client  in-port))))))
     (patchbay.on
       "PortsDisconnected"
-      (fn [& args] (let [out-client (aget args 1)
-                         out-port   (aget args 3)
-                         in-client  (aget args 5)
-                         in-port    (aget args 7)]
+      (fn [& args] (let [out-client (aget args 2)
+                         out-port   (aget args 4)
+                         in-client  (aget args 6)
+                         in-port    (aget args 8)]
         (log (str "ports " out-client ":" out-port
                   " and "  in-client  ":" in-port  " disconnected"))
         (update (fn [] (events.emit "disconnected" out-client out-port
