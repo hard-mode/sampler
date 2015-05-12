@@ -6,14 +6,14 @@
 (def ^:private do-spawn (require "./spawn.wisp"))
 
 ; initialize state
-(set! session.persist.jack (or session.persist.jack
+(set! persist.jack (or persist.jack
   { :started     false
     :events      (event2.EventEmitter2.)
     :clients     {}
     :connections {} }))
 
 ; shorthand
-(def state session.persist.jack)
+(def state persist.jack)
 
 ; parsers
 (defn parse-ports [data]

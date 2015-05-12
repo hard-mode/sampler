@@ -6,7 +6,7 @@
 (def ^:private a2j (jack.client "Sample0_10000"))
 (jack.spawn "a2j" "a2jmidid" "-e")
 
-(set! session.persist.midi (or session.persist.midi
+(set! persist.midi (or persist.midi
   { :inputs  {}
     :outputs {} }))
 
@@ -26,7 +26,7 @@
     (a2j.events.once "started" (fn [] (do-get-port-by-name midi-io port-match callback)))))
 
 (defn connect-output [port-name]
-  (let [m (or (aget session.persist.midi.outputs port-name)
+  (let [m (or (aget persist.midi.outputs port-name)
               (new midi.output))]
     (get-port-by-name m port-name (fn [port-number]
       (console.log "OUT ::" port-number (m.get-port-name port-number))
@@ -34,7 +34,7 @@
     m))
 
 (defn connect-input [port-name callback]
-  (let [m (or (aget session.persist.midi.inputs port-name)
+  (let [m (or (aget persist.midi.inputs port-name)
               (new midi.input))]
     (get-port-by-name m port-name (fn [port-number]
       (console.log " IN ::" port-number (m.get-port-name port-number))
