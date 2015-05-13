@@ -10,20 +10,25 @@
   { :inputs  {}
     :outputs {} }))
 
-(defn do-get-port-by-name [midi-io port-match callback]
-  (let [port-count (midi-io.get-port-count)]
-    (loop [port-number 0]
-      (if (< port-number port-count)
-        (let [port-name (midi-io.get-port-name port-number)]
-          (console.log "PORT" port-number port-name port-match)
-          (if (= 0 (port-name.index-of port-match))
-            (callback port-number)
-            (recur (+ port-number 1))))))))
+(defn close-all []
+  (.map (Object.keys persist.midi.inputs) (fn [i]
+    (.closePort (aget persist.midi.inputs i))))
+  (.map (Object.keys persist.midi.outputs) (fn [o]
+    (.closePort (aget persist.midi.outputs o)))))
+
+;(process.on "SIGTERM" close-all)
+;(process.on "SIGINT"  close-all)
 
 (defn get-port-by-name [midi-io port-match callback]
-  (if a2j.online
-    (do-get-port-by-name midi-io port-match callback)
-    (a2j.events.once "started" (fn [] (do-get-port-by-name midi-io port-match callback)))))
+  (a2j.started.then (fn [midi-io port-match callback]
+    (let [port-count (midi-io.get-port-count)]
+      (loop [port-number 0]
+        (if (< port-number port-count)
+          (let [port-name (midi-io.get-port-name port-number)]
+            (console.log "PORT" port-number port-name port-match)
+            (if (= 0 (port-name.index-of port-match))
+              (callback port-number)
+              (recur (+ port-number 1))))))))))
 
 (defn connect-output [port-name]
   (let [m (or (aget persist.midi.outputs port-name)

@@ -25,10 +25,13 @@
         watcher  (.watch (require "chokidar")
           module.filename
           { :persistent true }) ]
-    (.install (require "source-map-support")) 
+
+    (.install            (require "source-map-support")) 
+    (.register-handler   (require "segfault-handler"))
     (set! global.persist {})
     (set! global.log     log)
     (watcher.on "change" reload)
+
     (reload)))
 
 ; session code
@@ -79,13 +82,13 @@
     yoshimi   (jack.client "yoshimi")
     _ (if yoshimi.online
         (set! bassline (midi.connect-output "yoshimi:midi in"))
-        (jack.connect-by-name "yoshimi" "left" "system" "playback_1")
-        (jack.connect-by-name "yoshimi" "left" "system" "playback_2")
+        ;(jack.connect-by-name "yoshimi" "left" "system" "playback_1")
+        ;(jack.connect-by-name "yoshimi" "left" "system" "playback_2")
         (yoshimi.events.once "started" (fn []
           (console.log "yoshimi has come online")
-          (set! bassline (midi.connect-output "yoshimi:midi in"))
-          (jack.connect-by-name "yoshimi" "left" "system" "playback_1")
-          (jack.connect-by-name "yoshimi" "left" "system" "playback_2"))))
+          (set! bassline (midi.connect-output "yoshimi:midi in")))))
+          ;(jack.connect-by-name "yoshimi" "left" "system" "playback_1")
+          ;(jack.connect-by-name "yoshimi" "left" "system" "playback_2"))))
     _ (jack.spawn "yoshimi" "yoshimi")
     ;bassline  (midi.connect-output "yoshimi:midi in")
 

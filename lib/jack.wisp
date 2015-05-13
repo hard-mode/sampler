@@ -1,9 +1,14 @@
 (ns jack (:require [wisp.runtime :refer [str = not &]]))
 
+;;
+;; interact with jack-audio-connection-kit's patchbay
+;;
+
 (def ^:private bitwise  (require "./bitwise.js"))
 (def ^:private dbus     (require "dbus-native"))
-(def ^:private event2   (require "eventemitter2"))
 (def ^:private do-spawn (require "./spawn.wisp"))
+(def ^:private event2   (require "eventemitter2"))
+(def ^:private Q        (require "q"))
 
 ; initialize state
 (set! persist.jack (or persist.jack
@@ -45,9 +50,9 @@
 (defn parse-connections [data]
   (let [connections {}]
     (data.map (fn [connection]
-      (let [output-client (aget state.clients       (aget connection 1))
+      (let [output-client (aget persist.jack.clients       (aget connection 1))
             output-port   (aget output-client.ports (aget connection 3))
-            input-client  (aget state.clients       (aget connection 5))
+            input-client  (aget persist.jack.clients       (aget connection 5))
             input-port    (aget input-client.ports  (aget connection 7))]
         (set! (aget connections (aget connection 8)
           { :output output-port
@@ -56,16 +61,16 @@
 
 ; state updater
 (defn update [cb]
-  (state.patchbay.GetGraph "0" (fn [err graph clients connections] 
+  (persist.jack.patchbay.GetGraph "0" (fn [err graph clients connections] 
     (if err (throw err))
-    (set! state.clients     (parse-clients     clients))
-    (set! state.connections (parse-connections connections))
+    (set! persist.jack.clients     (parse-clients     clients))
+    (set! persist.jack.connections (parse-connections connections))
     (if cb (cb)))))
 
 ; event handlers
 (defn bind []
-  (let [patchbay state.patchbay
-        events   state.events]
+  (let [patchbay persist.jack.patchbay
+        events   persist.jack.events]
     (patchbay.on
       "ClientAppeared"
       (fn [& args] (let [client (aget args 2)]
@@ -123,58 +128,73 @@
 		(dbus-service.get-interface dbus-path "org.jackaudio.JackControl"
       (fn [err control] (if err (throw err))
         (log "connected to jack control")
-        (set! state.control control)
+        (set! persist.jack.control control)
         (control.StartServer (fn []
           (log "jack server started")
 			    (dbus-service.get-interface dbus-path "org.jackaudio.JackPatchbay"
             (fn [err patchbay] (if err (throw err))
               (log "connected to jack patchbay")
-              (set! state.patchbay patchbay)
+              (set! persist.jack.patchbay patchbay)
               (update bind)))))))))
 
 ; autostart
-(if (not state.started) (init))
+(if (not persist.jack.started) (init))
 
-; only execute spawns after the session has opened
+; execute as soon as the session has started
+(def after-session-start
+  (let [deferred (Q.defer)]
+    (if persist.jack.started
+      (deferred.resolve)
+      (persist.jack.events.on "started" deferred.resolve))
+    deferred.promise))
+
+; spawn a child process once the session has started
+; and a ClientAppeared notification can be received
 (defn spawn [id & args]
+  (console.log "jack.spawn" id args)
   (args.unshift id)
-  (if state.started
-    (do-spawn.apply nil args)
-    (state.events.once "started" (fn [] (do-spawn.apply nil args)))))
+  (after-session-start.then (fn [] (do-spawn.apply nil args))))
 
 ; connectors
 (defn connect-by-name [output-c output-p input-c input-p]
-  (state.patchbay.ConnectPortsByName output-c output-p input-c input-p))
+  (persist.jack.patchbay.ConnectPortsByName output-c output-p input-c input-p))
 
 (defn connect-by-id [output-c output-p input-c input-p]
-  (state.patchbay.ConnectPortsByID output-c output-p input-c input-p))
+  (persist.jack.patchbay.ConnectPortsByID output-c output-p input-c input-p))
 
 ; lookups
 (defn find-client [client-name]
-  (.indexOf (Object.keys state.clients) client-name))
+  (.indexOf (Object.keys persist.jack.clients) client-name))
 
 (defn client-found [client-name]
   (not (= -1 (find-client client-name))))
 
 ; expectations
 (defn client [client-name]
-  (let [jack    state
+  (let [deferred  (Q.defer)
 
-        state   { :online  false
-                  :events  (event2.EventEmitter2.)
-                  :name    client-name }
+        state   { :online   false
+                  :started  deferred.promise
+                  :events   (event2.EventEmitter2.)
+                  :name     client-name }
 
-        start     (fn []  (set! state.online true)
-                          (state.events.emit "started"))
+        start     (fn []
+                    (set! state.online true)
+                    (deferred.resolve))
+
         starter   nil
 
-        finder    (fn []  (if (client-found client-name)
-                            (start)
-                            (jack.events.once "client-online" starter)))]
+        finder    (fn []
+                    (if (client-found client-name)
+                      (start)
+                      (persist.jack.events.once "client-online" starter)))
+       ]
 
     (set! starter (fn [c]
-      (if (= c client-name) (start)
-                            (jack.events.once "client-online" starter))))
+      (if (= c client-name)
+        (start)
+        (persist.jack.events.once "client-online" starter))))
 
-    (if jack.started (finder) (jack.events.on "started" finder))
+    (after-session-start.then finder)
+
     state))

@@ -28,7 +28,7 @@
         jack-process      (jack.spawn jack-client-name
                             postmelodic "-n" jack-client-name "-p" osc-client.port sample)]
 
-    (jack-client.events.once "started" (fn []
+    (jack-client.events.once "online" (fn []
       (jack.connect-by-name jack-client-name "output" "system" "playback_1")
       (jack.connect-by-name jack-client-name "output" "system" "playback_2")))
 
