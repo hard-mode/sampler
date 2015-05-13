@@ -69,24 +69,24 @@
     (patchbay.on
       "ClientAppeared"
       (fn [& args] (let [client (aget args 2)]
-        (log (str "client " client " appeared"))
+        (log (str "client appeared:    " client))
         (update (fn [] (events.emit "client-online" client))))))
     (patchbay.on
       "ClientDisappeared"
       (fn [& args] (let [client (aget args 2)]
-        (log (str "client " client " disappeared"))
+        (log (str "client disappeared: " client))
         (update (fn [] (events.emit "client-offline" client))))))
     (patchbay.on
       "PortAppeared"
       (fn [& args] (let [client (aget args 2)
                          port   (aget args 4)]
-        (log (str "port " client ":" port " appeared"))
+        (log (str "port appeared:      " client ":" port))
         (update (fn [] (events.emit "port-online" client port))))))
     (patchbay.on
       "PortDisappeared"
       (fn [& args] (let [client (aget args 2)
                          port   (aget args 4)]
-        (log (str "port " client ":" port " disappeared"))
+        (log (str "port disappeared:   " client ":" port))
         (update (fn [] (events.emit "port-offline" client port))))))
     (patchbay.on
       "PortsConnected"
@@ -94,8 +94,8 @@
                          out-port   (aget args 4)
                          in-client  (aget args 6)
                          in-port    (aget args 8)]
-        (log (str "ports " out-client ":" out-port
-                  " and "  in-client  ":" in-port  " connected"))
+        (log (str "ports connected:    " out-client ":" out-port
+                                  " -> "  in-client ":"  in-port))
         (update (fn [] (events.emit "connected" out-client out-port
                                                 in-client  in-port))))))
     (patchbay.on
@@ -104,13 +104,13 @@
                          out-port   (aget args 4)
                          in-client  (aget args 6)
                          in-port    (aget args 8)]
-        (log (str "ports " out-client ":" out-port
-                  " and "  in-client  ":" in-port  " disconnected"))
+        (log (str "ports disconnected: " out-client ":" out-port
+                                 " >< "  in-client ":"  in-port))
         (update (fn [] (events.emit "disconnected" out-client out-port
                                                    in-client  in-port))))))
     (patchbay.on "GraphChanged"
-      (fn []
-        (log (str "graph changed"))))
+      (fn []))
+        ;(log (str "graph changed"))))
     (set! started true)
     (events.emit "started")))
 

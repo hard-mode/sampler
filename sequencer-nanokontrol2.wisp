@@ -39,7 +39,7 @@
     teoria (require "teoria")
 
     ;sooper (require "./looper.wisp")
-    ;jack   (require "./lib/jack.wisp")
+    jack   (require "./lib/jack.wisp")
     midi   (require "./lib/midi.wisp")
     ;mixer  (require "./mixer.wisp")
     osc    (require "./lib/osc.wisp")
@@ -65,24 +65,28 @@
       note))
 
     ; drums
-    kicks     [1 0 0 1 0 0 1 0]
+    kicks     [1 0 0 1 0 0 1 1]
     kick      (sample.player "./samples/kick.wav")
 
     snares    [0 0 0 0 1 0 0 0]
     snare     (sample.player "./samples/snare.wav")
 
     ; synths
-    ;yoshimi   (jack.client "yoshimi")
-
     phrase    [0 0 0 0 0 0 0 0]
     decay     0.5
-    bassline  { :send (fn []) }
+    bassline  { :send-message (fn []) }
 
-    _ (console.log persist)
-    ;_ (if yoshimi.online
-        ;(set! bassline (midi.connect-output "yoshimi:midi in"))
-        ;(yoshimi.events.once "started" (fn [] (midi.connect-output "yoshimi:midi in"))))
-    ;_ (jack.spawn "yoshimi" "yoshimi")
+    yoshimi   (jack.client "yoshimi")
+    _ (if yoshimi.online
+        (set! bassline (midi.connect-output "yoshimi:midi in"))
+        (jack.connect-by-name "yoshimi" "left" "system" "playback_1")
+        (jack.connect-by-name "yoshimi" "left" "system" "playback_2")
+        (yoshimi.events.once "started" (fn []
+          (console.log "yoshimi has come online")
+          (set! bassline (midi.connect-output "yoshimi:midi in"))
+          (jack.connect-by-name "yoshimi" "left" "system" "playback_1")
+          (jack.connect-by-name "yoshimi" "left" "system" "playback_2"))))
+    _ (jack.spawn "yoshimi" "yoshimi")
     ;bassline  (midi.connect-output "yoshimi:midi in")
 
     ; looper
@@ -94,7 +98,7 @@
       (match [(= msg 189) (= d1 16)]          (set! decay (/ d2 127)))
       (match [(= msg 189) (= d1 17)]          (set! tempo (+ 120 (* 120 (/ d2 127)))))))
 
-    launchpad (midi.connect-controller "a2j:Launchpad" (fn [dt msg d1 d2]
+    launchpad   (midi.connect-controller "a2j:Launchpad" (fn [dt msg d1 d2]
       (match [(= msg 144) (> d1 -1) (< d1 8)  (= d2 127)]
         (set! jumpto d1))
       (match [(= msg 144) (> d1 15) (< d1 24) (= d2 127)]
@@ -124,12 +128,11 @@
       (if (aget snares index) (snare.play))
 
       ; yoshimi
-      ;(let [note (.midi (make-note (aget phrase index)))]
-        ;(nanokontrol.send [144 note 127])
-        ;(bassline.send [144 note 127])
-        ;(after (* 2000 decay (/ 60 tempo))
-          ;(nanokontrol.send [144 note 0])))
-          ;(bassline.send [144 note 0])))
+      (if bassline.send-message
+        (let [note (.midi (make-note (aget phrase index)))]
+          (bassline.send-message [144 note 127])
+          (after (* 2000 decay (/ 60 tempo))
+            (bassline.send-message [144 note 0]))))
 
       ; sooperlooper - begin recording
       ;(looper.map (fn [l i]
