@@ -187,8 +187,7 @@
         finder    (fn []
                     (if (client-found client-name)
                       (start)
-                      (persist.jack.events.once "client-online" starter)))
-       ]
+                      (persist.jack.events.once "client-online" starter)))]
 
     (set! starter (fn [c]
       (if (= c client-name)
