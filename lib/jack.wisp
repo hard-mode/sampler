@@ -1,4 +1,4 @@
-(ns jack (:require [wisp.runtime :refer [str = not &]]))
+(ns jack (:require [wisp.runtime :refer [str = not]]))
 
 ;;
 ;; interact with jack-audio-connection-kit's patchbay
@@ -149,27 +149,26 @@
     deferred.promise))
 
 ; spawn a child process once the session has started
-; and a ClientAppeared notification can be received
+; so that a ClientAppeared notification can be received
 (defn spawn [id & args]
   (console.log "jack.spawn" id args)
   (args.unshift id)
   (after-session-start.then (fn [] (do-spawn.apply nil args))))
 
-; connectors
+; port-level operations
 (defn connect-by-name [output-c output-p input-c input-p]
   (persist.jack.patchbay.ConnectPortsByName output-c output-p input-c input-p))
 
 (defn connect-by-id [output-c output-p input-c input-p]
   (persist.jack.patchbay.ConnectPortsByID output-c output-p input-c input-p))
 
-; lookups
+; client-level operations
 (defn find-client [client-name]
   (.indexOf (Object.keys persist.jack.clients) client-name))
 
 (defn client-found [client-name]
   (not (= -1 (find-client client-name))))
 
-; expectations
 (defn client [client-name]
   (let [deferred  (Q.defer)
 

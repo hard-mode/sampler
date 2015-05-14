@@ -11,9 +11,9 @@
 (defn spawn [id & args]
   (or
     (aget persist.spawn id)
-    (let [p (child.spawn.apply null [ (aget args 0)       ; command
-                                      (args.slice 1)      ; args
-                                      { :stdio "ignore" } ; opts
+    (let [p (child.spawn.apply null [ (aget args 0)        ; command
+                                      (args.slice 1)       ; args
+                                      { :stdio "inherit" } ; opts
                                     ] ) ]
       (set! (aget persist.spawn id) p)
       p)))

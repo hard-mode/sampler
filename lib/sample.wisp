@@ -1,9 +1,8 @@
 (ns sample (:require [wisp.runtime :refer [str =]]))
 
-(def ^:private path  (require "path"))
-(def ^:private osc   (require "./osc.wisp"))
 (def ^:private jack  (require "./jack.wisp"))
-(def ^:private spawn (require "./spawn.wisp"))
+(def ^:private osc   (require "./osc.wisp"))
+(def ^:private path  (require "path"))
 
 (def postmelodic "/home/epimetheus/code/hardmode/postmelodic/bin/sample_player")
 
@@ -16,15 +15,7 @@
 
         jack-client-name  (str "Sample" sample-nr "_" osc-client.port)
         jack-port-name    (str jack-client-name ":output")
-
         jack-client       (jack.client jack-client-name)
-        ;jack-port         (jack-client.create-client "output")
-        ;_                 (set! jack-port.channel 1)
-        ;_                 (jack-client.once "online" (fn []
-                            ;(console.log "postmelodic" sample-nr "online as" jack-client-name)
-														;(jack.force-connect jack-client-name "output" "system" "playback_1")
-														;(jack.force-connect jack-client-name "output" "system" "playback_2")))
-
         jack-process      (jack.spawn jack-client-name
                             postmelodic "-n" jack-client-name "-p" osc-client.port sample)]
 
