@@ -1,6 +1,6 @@
 (ns calf (:require [wisp.runtime :refer [str = not]]))
 
-(def ^:private jack  (require "./jack.wisp"))
+(def ^:private jack  (require "../lib/jack.wisp"))
 
 (def calfjackhost "calfjackhost")
 

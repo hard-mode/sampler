@@ -42,13 +42,14 @@
     _      (require "qtimers")
     teoria (require "teoria")
 
-    ;sooper (require "./looper.wisp")
     jack   (require "./lib/jack.wisp")
     midi   (require "./lib/midi.wisp")
     osc    (require "./lib/osc.wisp")
-    sample (require "./lib/sample.wisp")
     util   (require "./lib/util.wisp")
-    calf   (require "./lib/calf.wisp")
+
+    sample (require "./plugin/postmelodic.wisp")
+    calf   (require "./plugin/calf.wisp")
+    ;sooper (require "./plugin/sooperlooper.wisp")
 
     ; sequencer state
     tempo  140

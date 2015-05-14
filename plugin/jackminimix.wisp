@@ -1,8 +1,7 @@
 (ns mixer (:require [wisp.runtime :refer [str =]]))
 
-(def ^:private child (require "./spawn.wisp"))
-(def ^:private jack  (require "./jack.wisp"))
-(def ^:private osc   (require "./osc.wisp"))
+(def ^:private jack (require "../lib/jack.wisp"))
+(def ^:private osc  (require "../lib/osc.wisp"))
 
 (def jackminimix "jackminimix")
 

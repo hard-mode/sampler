@@ -1,7 +1,7 @@
 (ns sample (:require [wisp.runtime :refer [str =]]))
 
-(def ^:private jack  (require "./jack.wisp"))
-(def ^:private osc   (require "./osc.wisp"))
+(def ^:private jack  (require "../lib/jack.wisp"))
+(def ^:private osc   (require "../lib/osc.wisp"))
 (def ^:private path  (require "path"))
 
 (def postmelodic "/home/epimetheus/code/hardmode/postmelodic/bin/sample_player")
