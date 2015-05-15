@@ -163,7 +163,6 @@
 ;;
 
 (defn connect-by-name [output-c output-p input-c input-p]
-  (console.log "CONNECT" output-c output-p input-c input-p)
   (persist.jack.patchbay.ConnectPortsByName output-c output-p input-c input-p))
 
 (defn connect-by-id [output-c output-p input-c input-p]

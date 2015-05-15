@@ -61,15 +61,13 @@
     kicks     [0 0 0 0 0 0 0 0]
     kick      (sample.player "./samples/kick.wav")
     kick-fx   (calf "KickFX" ["mono" "eq5" "compressor" "stereo"])
-    _         (.then (Q.all [ kick.started
-                              kick-fx.started     ]) (fn [clients]
-                (let [kick-out (kick.port    "output")
-                      fx-in    (kick-fx.port "mono In #1")]
-                  (.then (Q.all [ kick-out.started
-                                  fx-in.started ]) (fn []
-                    (jack.connect-by-name
-                      kick-out.client kick-out.name
-                      fx-in.client    fx-in.name))))))
+    _         (let [kick-out (kick.port    "output")
+                    fx-in    (kick-fx.port "mono In #1")]
+                (.then (Q.all [ kick-out.started
+                                fx-in.started ]) (fn []
+                  (jack.connect-by-name
+                    kick-out.client kick-out.name
+                    fx-in.client    fx-in.name))))
 
     snares    [0 0 0 0 0 0 0 0]
     snare     (sample.player "./samples/snare.wav")
