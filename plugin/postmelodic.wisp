@@ -23,9 +23,13 @@
       (jack.connect-by-name jack-client-name "output" "system" "playback_1")
       (jack.connect-by-name jack-client-name "output" "system" "playback_2")))
 
-    { :client jack-client
-      :play   (fn [cue]    (osc-client.send "/play" 0 (or cue 0)))
-      :kill   (fn [signal] (jack-process.kill signal)) }))
+    { :client  jack-client
+      :process jack-process
+      :started jack-client.started
+      :port    jack-client.port
+
+      :play    (fn [cue]    (osc-client.send "/play" 0 (or cue 0)))
+      :kill    (fn [signal] (jack-process.kill signal)) }))
 
 (defn kit [root files]
   (.map files (fn [f] (path.resolve (path.join root f)))))

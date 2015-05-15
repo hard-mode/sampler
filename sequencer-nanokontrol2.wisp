@@ -41,6 +41,7 @@
     ; libraries
     _      (require "qtimers")
     teoria (require "teoria")
+    Q      (require "q")
 
     jack   (require "./lib/jack.wisp")
     midi   (require "./lib/midi.wisp")
@@ -57,16 +58,23 @@
     jumpto -1
 
     ; drums
-    kicks     [1 0 0 1 0 0 1 1]
+    kicks     [0 0 0 0 0 0 0 0]
     kick      (sample.player "./samples/kick.wav")
-    kick-fx   (calf "KickFX" [:mono :eq5 :compressor :stereo])
-    _         (kick-fx.started.then (fn []
-                (jack.connect-by-name "Sampler_10000" "output" kick-fx.name "mono In #1")))
+    kick-fx   (calf "KickFX" ["mono" "eq5" "compressor" "stereo"])
+    _         (.then (Q.all [ (.-started (kick.port    "output"))
+                              (.-started (kick-fx.port "moni In #1")) ]) (fn [ports]
+                (log "\n\n\n")
+                (log "THUMP!!!")
+                (console.log ports)
+                (log "\n\n\n")
+                ;(log (.execSync (require "child_process") "jack_lsp" { :encoding "utf8" }))
+                (jack.connect-by-name kick.client.name "output"
+                                   kick-fx.client.name "mono In #1")))
 
-    snares    [0 0 0 0 1 0 0 0]
+    snares    [0 0 0 0 0 0 0 0]
     snare     (sample.player "./samples/snare.wav")
 
-    hihats    [0 0 0 0 1 0 0 0]
+    hihats    [1 0 0 1 0 0 1 0]
     hihat     (sample.player "./samples/hh.wav")
 
     ; synths

@@ -1,4 +1,4 @@
-(ns jack (:require [wisp.runtime :refer [str = not]]))
+(ns jack (:require [wisp.runtime :refer [str = and not]]))
 
 ;;
 ;; interact with jack-audio-connection-kit's patchbay
@@ -11,14 +11,18 @@
 (def ^:private Q        (require "q"))
 
 ; initialize state
+
 (set! persist.jack (or persist.jack
   { :started     false
     :events      (event2.EventEmitter2.)
     :clients     {}
     :connections {} }))
 
-; shorthand
-(def state persist.jack)
+; shorthands
+(def state       persist.jack)
+(def events      persist.jack.events)
+(def clients     persist.jack.clients)
+(def connections persist.jack.connections)
 
 ; parsers
 (defn parse-ports [data]
@@ -50,27 +54,26 @@
 (defn parse-connections [data]
   (let [connections {}]
     (data.map (fn [connection]
-      (let [output-client (aget persist.jack.clients       (aget connection 1))
-            output-port   (aget output-client.ports (aget connection 3))
-            input-client  (aget persist.jack.clients       (aget connection 5))
-            input-port    (aget input-client.ports  (aget connection 7))]
+      (let [out-client (aget clients          (aget connection 1))
+            out-port   (aget out-client.ports (aget connection 3))
+            in-client  (aget clients          (aget connection 5))
+            in-port    (aget in-client.ports  (aget connection 7))]
         (set! (aget connections (aget connection 8)
-          { :output output-port
-            :input  input-port })))))
+          { :output out-port
+            :input  in-port })))))
   connections))
 
 ; state updater
 (defn update [cb]
-  (persist.jack.patchbay.GetGraph "0" (fn [err graph clients connections] 
+  (persist.jack.patchbay.GetGraph "0" (fn [err graph client-list connection-list]
     (if err (throw err))
-    (set! persist.jack.clients     (parse-clients     clients))
-    (set! persist.jack.connections (parse-connections connections))
+    (set! clients     (parse-clients     client-list))
+    (set! connections (parse-connections connection-list))
     (if cb (cb)))))
 
 ; event handlers
 (defn bind []
-  (let [patchbay persist.jack.patchbay
-        events   persist.jack.events]
+  (let [patchbay persist.jack.patchbay]
     (patchbay.on
       "ClientAppeared"
       (fn [& args] (let [client (aget args 2)]
@@ -145,7 +148,7 @@
   (let [deferred (Q.defer)]
     (if persist.jack.started
       (deferred.resolve)
-      (persist.jack.events.on "started" deferred.resolve))
+      (events.on "started" deferred.resolve))
     deferred.promise))
 
 ; spawn a child process once the session has started
@@ -155,44 +158,81 @@
   (args.unshift id)
   (after-session-start.then (fn [] (do-spawn.apply nil args))))
 
-; port-level operations
+;;
+;; client and port operations
+;;
+
 (defn connect-by-name [output-c output-p input-c input-p]
+  (log "CONNECT" output-c output-p "TO" input-c input-p)
   (persist.jack.patchbay.ConnectPortsByName output-c output-p input-c input-p))
 
 (defn connect-by-id [output-c output-p input-c input-p]
   (persist.jack.patchbay.ConnectPortsByID output-c output-p input-c input-p))
 
-; client-level operations
 (defn find-client [client-name]
-  (.indexOf (Object.keys persist.jack.clients) client-name))
+  (.indexOf (Object.keys clients) client-name))
 
 (defn client-found [client-name]
   (not (= -1 (find-client client-name))))
 
+(defn find-port [client-name port-name]
+  (let [client  (or (aget clients client-name)
+                    { :ports {} })
+        ports   (Object.keys client.ports)]
+    (.indexOf ports port-name)))
+
+(defn port-found [client-name port-name]
+  (not (= -1 (find-port client-name port-name))))
+
+(defn port [client-name port-name]
+  (let [deferred  (Q.defer)
+
+        state     { :name    port-name  
+                    :client  client-name
+                    :started deferred.promise
+                    :online  false }
+
+        start     (fn [] (console.log "Port" client-name ":" port-name "online")
+                         (set! state.online true)
+                         (deferred.resolve client-name port-name))
+
+        starter   nil ]
+
+    (set! starter (fn [c p]
+      (if (and (= c client-name) (= p port-name))
+        (start)
+        (events.once "port-online" starter))))
+
+    (after-session-start.then (fn []
+      (if (port-found client-name port-name)
+        (start)
+        (events.once "port-online" starter))))
+    
+    state))
+
 (defn client [client-name]
   (let [deferred  (Q.defer)
 
-        state   { :online   false
-                  :started  deferred.promise
-                  :events   (event2.EventEmitter2.)
-                  :name     client-name }
+        state     { :name     client-name
+                    :online   false
+                    :started  deferred.promise
+                    :events   (event2.EventEmitter2.)
+                    :port     (port.bind null client-name) }
 
         start     (fn []
                     (set! state.online true)
-                    (deferred.resolve))
+                    (deferred.resolve client-name))
 
-        starter   nil
-
-        finder    (fn []
-                    (if (client-found client-name)
-                      (start)
-                      (persist.jack.events.once "client-online" starter)))]
+        starter   nil]
 
     (set! starter (fn [c]
       (if (= c client-name)
         (start)
-        (persist.jack.events.once "client-online" starter))))
+        (events.once "client-online" starter))))
 
-    (after-session-start.then finder)
+    (after-session-start.then (fn []
+      (if (client-found client-name)
+        (start)
+        (events.once "client-online" starter))))
 
     state))

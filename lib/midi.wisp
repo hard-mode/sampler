@@ -15,7 +15,6 @@
     (loop [port-number 0]
       (if (< port-number port-count)
         (let [port-name (midi-io.get-port-name port-number)]
-          (console.log "PORT" port-number port-name port-match)
           (if (= 0 (port-name.index-of port-match))
             (callback port-number)
             (recur (+ port-number 1))))))))

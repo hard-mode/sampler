@@ -6,11 +6,12 @@
 
 (set! module.exports (fn calf [client-name plugin-list]
   (let [jack-client   (jack.client client-name)
-        jack-process  (jack.spawn  client-name
-                        calfjackhost
-                        "--client" client-name
-                        (plugin-list.join " ")
-                        "!" ; connect to system outs
-                      )]
-  { :name    client-name
-    :started jack-client.started })))
+
+        args          [client-name calfjackhost "--client" client-name]
+        args          (args.concat plugin-list)
+        _             (args.push "!")
+        jack-process  (jack.spawn.apply nil args)]
+  { :client  jack-client
+    :process jack-process
+    :started jack-client.started
+    :port    jack-client.port })))
