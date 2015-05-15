@@ -61,15 +61,15 @@
     kicks     [0 0 0 0 0 0 0 0]
     kick      (sample.player "./samples/kick.wav")
     kick-fx   (calf "KickFX" ["mono" "eq5" "compressor" "stereo"])
-    _         (.then (Q.all [ (.-started (kick.port    "output"))
-                              (.-started (kick-fx.port "moni In #1")) ]) (fn [ports]
-                (log "\n\n\n")
-                (log "THUMP!!!")
-                (console.log ports)
-                (log "\n\n\n")
-                ;(log (.execSync (require "child_process") "jack_lsp" { :encoding "utf8" }))
-                (jack.connect-by-name kick.client.name "output"
-                                   kick-fx.client.name "mono In #1")))
+    _         (.then (Q.all [ kick.started
+                              kick-fx.started     ]) (fn [clients]
+                (let [kick-out (kick.port    "output")
+                      fx-in    (kick-fx.port "mono In #1")]
+                  (.then (Q.all [ kick-out.started
+                                  fx-in.started ]) (fn []
+                    (jack.connect-by-name
+                      kick-out.client kick-out.name
+                      fx-in.client    fx-in.name))))))
 
     snares    [0 0 0 0 0 0 0 0]
     snare     (sample.player "./samples/snare.wav")

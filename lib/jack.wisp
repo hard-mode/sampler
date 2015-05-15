@@ -154,7 +154,7 @@
 ; spawn a child process once the session has started
 ; so that a ClientAppeared notification can be received
 (defn spawn [id & args]
-  (console.log "jack.spawn" id args)
+  (log "jack.spawn" id args)
   (args.unshift id)
   (after-session-start.then (fn [] (do-spawn.apply nil args))))
 
@@ -163,7 +163,7 @@
 ;;
 
 (defn connect-by-name [output-c output-p input-c input-p]
-  (log "CONNECT" output-c output-p "TO" input-c input-p)
+  (console.log "CONNECT" output-c output-p input-c input-p)
   (persist.jack.patchbay.ConnectPortsByName output-c output-p input-c input-p))
 
 (defn connect-by-id [output-c output-p input-c input-p]
@@ -192,21 +192,20 @@
                     :started deferred.promise
                     :online  false }
 
-        start     (fn [] (console.log "Port" client-name ":" port-name "online")
-                         (set! state.online true)
+        start     (fn [] (set! state.online true)
                          (deferred.resolve client-name port-name))
 
         starter   nil ]
 
     (set! starter (fn [c p]
-      (if (and (= c client-name) (= p port-name))
+      (if (and (= c client-name) (= p port-name)) (do
         (start)
-        (events.once "port-online" starter))))
+        (events.off "port-online" starter)))))
 
     (after-session-start.then (fn []
       (if (port-found client-name port-name)
         (start)
-        (events.once "port-online" starter))))
+        (events.on "port-online" starter))))
     
     state))
 
@@ -226,13 +225,13 @@
         starter   nil]
 
     (set! starter (fn [c]
-      (if (= c client-name)
+      (if (= c client-name) (do
         (start)
-        (events.once "client-online" starter))))
+        (events.off "client-online" starter)))))
 
     (after-session-start.then (fn []
       (if (client-found client-name)
         (start)
-        (events.once "client-online" starter))))
+        (events.on "client-online" starter))))
 
     state))
