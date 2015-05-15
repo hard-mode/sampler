@@ -6,6 +6,7 @@
     "dbus-native": "^0.2.0",
     "eventemitter2": "^0.4.14",
     "inquirer": "^0.8.2",
+    "intersperse": "^1.0.0",
     "midi": "^0.9.3",
     "node-osc": "^0.3.0",
     "q": "^1.4.0",
