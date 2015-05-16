@@ -8,28 +8,34 @@
 
 (def ^:private next-player 0)
 
-(defn player [sample]
-  (let [sample-nr         next-player
-        _                 (set! next-player (+ next-player 1))
-        osc-client        (osc.client)
+(set! persist.postmelodic (or persist.postmelodic {}))
 
-        jack-client-name  (str "Sample" sample-nr "_" osc-client.port)
-        jack-port-name    (str jack-client-name ":output")
-        jack-client       (jack.client jack-client-name)
-        jack-process      (jack.spawn jack-client-name
-                            postmelodic "-n" jack-client-name "-p" osc-client.port sample)]
+(defn player
+  ([sample] (player sample sample))
+  ([jack-client-name sample]
+    (or (aget persist.postmelodic jack-client-name)
+      (let [sample-nr         next-player
+            _                 (set! next-player (+ next-player 1))
+            osc-client        (osc.client)
 
-    ;(jack-client.started.then (fn []
-      ;(jack.connect-by-name jack-client-name "output" "system" "playback_1")
-      ;(jack.connect-by-name jack-client-name "output" "system" "playback_2")))
+            jack-port-name    (str jack-client-name ":output")
+            jack-client       (jack.client jack-client-name)
+            spawn-key         (str module.filename
+                                ":" (if process.main process.main.filename nil)
+                                ":" jack-client-name)
+            jack-process      (jack.spawn spawn-key
+                                postmelodic "-n" jack-client-name "-p" osc-client.port sample)
 
-    { :client  jack-client
-      :process jack-process
-      :started jack-client.started
-      :port    jack-client.port
+            state             { :client  jack-client
+                                :process jack-process
+                                :started jack-client.started
+                                :port    jack-client.port
 
-      :play    (fn [cue]    (osc-client.send "/play" 0 (or cue 0)))
-      :kill    (fn [signal] (jack-process.kill signal)) }))
+                                :play    (fn [cue]    (osc-client.send "/play" 0 (or cue 0)))
+                                :kill    (fn [signal] (jack-process.kill signal)) }]
+
+        (set! (aget persist.postmelodic jack-client-name) state)
+        state))))
 
 (defn kit [root files]
   (.map files (fn [f] (path.resolve (path.join root f)))))
