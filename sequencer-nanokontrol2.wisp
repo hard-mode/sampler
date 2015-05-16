@@ -68,9 +68,31 @@
 
     snares    [0 0 0 0 0 0 0 0]
     snare     (sample.player "./samples/snare.wav")
+    snare-fx1 (calf "SnareFX1" ["mono" "eq5" "compressor" "stereo"])
+    snare-fx2 (calf "SnareFX2" ["reverb" "sidechaingate"])
+    _         (jack.chain "Snare"
+                [ (.port snare "output")                   (.port snare-fx1   "mono In #1")          ]
+                [ (.port snare-fx1 "eq5 Out #1")           (.port snare-fx2   "reverb In #1")        ]
+                [ (.port snare-fx1 "eq5 Out #2")           (.port snare-fx2   "reverb In #2")        ]
+                [ (.port snare-fx1 "eq5 Out #1")           (.port snare-fx2   "sidechaingate In #3") ]
+                [ (.port snare-fx1 "eq5 Out #2")           (.port snare-fx2   "sidechaingate In #4") ]
+                [ (.port snare-fx2 "sidechaingate Out #1") (.port jack.system "playback_1")          ]
+                [ (.port snare-fx2 "sidechaingate Out #2") (.port jack.system "playback_2")          ]
+                [ (.port snare-fx1 "stereo Out #1")        (.port jack.system "playback_1")          ]
+                [ (.port snare-fx1 "stereo Out #2")        (.port jack.system "playback_2")          ])
 
     hihats    [1 0 0 1 0 0 1 0]
     hihat     (sample.player "./samples/hh.wav")
+    hihat-fx1 (calf "HihatFX1" ["mono" "eq5" "stereo"])
+    hihat-fx2 (calf "HihatFX2" ["vintagedelay"])
+    _         (jack.chain "Hihat"
+                [ (.port hihat     "output")              (.port hihat-fx1   "mono In #1")         ]
+                [ (.port hihat-fx1 "eq5 Out #1")          (.port hihat-fx2   "vintagedelay In #1") ]
+                [ (.port hihat-fx1 "eq5 Out #2")          (.port hihat-fx2   "vintagedelay In #2") ]
+                [ (.port hihat-fx2 "vintagedelay Out #1") (.port jack.system "playback_1")         ]
+                [ (.port hihat-fx2 "vintagedelay Out #2") (.port jack.system "playback_2")         ]
+                [ (.port hihat-fx1 "stereo Out #1")       (.port jack.system "playback_1")         ]
+                [ (.port hihat-fx1 "stereo Out #2")       (.port jack.system "playback_2")         ])
 
     ; synths
     phrase    [0 0 0 0 0 0 0 0]
