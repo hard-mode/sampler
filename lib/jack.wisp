@@ -243,7 +243,9 @@
 (defn chain [chain-name & links]
   (links.map (fn [link]
     (let [out (aget link 0)
-          inp (aget link 1)]
+          out (.port (aget out 0) (aget out 1))
+          inp (aget link 1)
+          inp (.port (aget inp 0) (aget inp 1))]
       (.then (Q.all [ out.started
                       inp.started ])
         (fn [] (connect-by-name out.client out.name

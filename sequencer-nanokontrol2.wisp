@@ -53,38 +53,46 @@
     calf   (require "./plugin/calf.wisp")
     jack   (require "./lib/jack.wisp")
     hw     jack.system
-    kick  (sample.player "./samples/kick.wav")
-    _     (let [fx (calf "KickFX" ["mono" "eq5" "compressor" "stereo"])]
+
+    kick  (let [inst (sample.player "./samples/kick.wav")
+                fx   (calf "KickFX" ["mono" "eq5" "compressor" "stereo"])]
             (jack.chain "Kick"
-              [ (.port kick "output")        (.port fx "mono In #1") ]
-              [ (.port fx   "stereo Out #1") (.port hw "playback_1") ]
-              [ (.port fx   "stereo Out #2") (.port hw "playback_2") ] ))
+              [ [inst "output"]      [fx "mono In #1"] ]
+              [ [fx "stereo Out #1"] [hw "playback_1"] ]
+              [ [fx "stereo Out #2"] [hw "playback_2"] ] )
+            inst)
 
-    snare (sample.player "./samples/snare.wav")
-    _     (let [fx1 (calf "SnareFX1" ["mono" "eq5" "compressor" "stereo"])
-                fx2 (calf "SnareFX2" ["reverb" "sidechaingate"])]
+    snare (let [inst (sample.player "./samples/snare.wav")
+                fx1  (calf "SnareFX1" [ "mono" "eq5" "compressor" "stereo"])
+                fx2  (calf "SnareFX2" [ "reverb" "sidechaingate"])]
+
             (jack.chain "Snare"
-              [ (.port snare "output")             (.port fx1 "mono In #1")          ]
-              [ (.port fx1 "eq5 Out #1")           (.port fx2 "reverb In #1")        ]
-              [ (.port fx1 "eq5 Out #2")           (.port fx2 "reverb In #2")        ]
-              [ (.port fx1 "eq5 Out #1")           (.port fx2 "sidechaingate In #3") ]
-              [ (.port fx1 "eq5 Out #2")           (.port fx2 "sidechaingate In #4") ]
-              [ (.port fx2 "sidechaingate Out #1") (.port hw  "playback_1")          ]
-              [ (.port fx2 "sidechaingate Out #2") (.port hw  "playback_2")          ]
-              [ (.port fx1 "stereo Out #1")        (.port hw  "playback_1")          ]
-              [ (.port fx1 "stereo Out #2")        (.port hw  "playback_2")          ] ))
+              [ [inst "output"]              [fx1 "mono In #1"]          ]
+              [ [fx1 "eq5 Out #1"]           [fx2 "reverb In #1"]        ]
+              [ [fx1 "eq5 Out #2"]           [fx2 "reverb In #2"]        ]
+              [ [fx1 "eq5 Out #1"]           [fx2 "sidechaingate In #3"] ]
+              [ [fx1 "eq5 Out #2"]           [fx2 "sidechaingate In #4"] ]
+              [ [fx2 "sidechaingate Out #1"] [hw  "playback_1"]          ]
+              [ [fx2 "sidechaingate Out #2"] [hw  "playback_2"]          ]
+              [ [fx1 "stereo Out #1"]        [hw  "playback_1"]          ]
+              [ [fx1 "stereo Out #2"]        [hw  "playback_2"]          ] )
 
-    hihat (sample.player "./samples/hh.wav")
-    _     (let [fx1 (calf "HihatFX1" ["mono" "eq5" "stereo"])
-                fx2 (calf "HihatFX2" ["vintagedelay"])]
+            inst)
+
+    hihat (let [inst (sample.player "./samples/hh.wav")
+                fx1  (calf "HihatFX1" [ "mono" "eq5" "stereo" ])
+                fx2  (calf "HihatFX2" ["vintagedelay"])]
+
             (jack.chain "Hihat"
-              [ (.port hihat "output")              (.port fx1   "mono In #1")         ]
-              [ (.port fx1   "eq5 Out #1")          (.port fx2   "vintagedelay In #1") ]
-              [ (.port fx1   "eq5 Out #2")          (.port fx2   "vintagedelay In #2") ]
-              [ (.port fx2   "vintagedelay Out #1") (.port jack.system "playback_1")   ]
-              [ (.port fx2   "vintagedelay Out #2") (.port jack.system "playback_2")   ]
-              [ (.port fx1   "stereo Out #1")       (.port jack.system "playback_1")   ]
-              [ (.port fx1   "stereo Out #2")       (.port jack.system "playback_2")   ] ))
+              [ [inst "output"]              [fx1 "mono In #1"]         ]
+              [ [fx1  "eq5 Out #1"]          [fx2 "vintagedelay In #1"] ]
+              [ [fx1  "eq5 Out #2"]          [fx2 "vintagedelay In #2"] ]
+              [ [fx2  "vintagedelay Out #1"] [hw  "playback_1"]         ]
+              [ [fx2  "vintagedelay Out #2"] [hw  "playback_2"]         ]
+              [ [fx1  "stereo Out #1"]       [hw  "playback_1"]         ]
+              [ [fx1  "stereo Out #2"]       [hw  "playback_2"]         ] )
+
+            inst)
 
     ;;
     ;; synths
