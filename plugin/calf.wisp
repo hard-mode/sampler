@@ -10,7 +10,6 @@
 
         args          [client-name calfjackhost "--client" client-name]
         args          (args.concat (intersperse plugin-list "!"))
-        _             (args.push "!")
         jack-process  (jack.spawn.apply nil args)]
   { :client  jack-client
     :process jack-process

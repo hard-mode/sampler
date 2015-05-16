@@ -158,11 +158,15 @@
   (args.unshift id)
   (after-session-start.then (fn [] (do-spawn.apply nil args))))
 
+
 ;;
 ;; client and port operations
 ;;
 
 (defn connect-by-name [output-c output-p input-c input-p]
+  (log "connecting:        "
+    (str output-c ":" output-p)
+    (str input-c  ":" input-p))
   (persist.jack.patchbay.ConnectPortsByName output-c output-p input-c input-p))
 
 (defn connect-by-id [output-c output-p input-c input-p]
@@ -192,7 +196,7 @@
                     :online  false }
 
         start     (fn [] (set! state.online true)
-                         (deferred.resolve client-name port-name))
+                         (deferred.resolve))
 
         starter   nil ]
 
@@ -217,9 +221,8 @@
                     :events   (event2.EventEmitter2.)
                     :port     (port.bind null client-name) }
 
-        start     (fn []
-                    (set! state.online true)
-                    (deferred.resolve client-name))
+        start     (fn [] (set! state.online true)
+                         (deferred.resolve))
 
         starter   nil]
 
@@ -234,3 +237,14 @@
         (events.on "client-online" starter))))
 
     state))
+
+(def system (client "system"))
+
+(defn chain [chain-name & links]
+  (links.map (fn [link]
+    (let [out (aget link 0)
+          inp (aget link 1)]
+      (.then (Q.all [ out.started
+                      inp.started ])
+        (fn [] (connect-by-name out.client out.name
+                                inp.client inp.name)))))))
