@@ -157,24 +157,12 @@
     phrase [0 0 0 0 0 0 0 0]
     decay  0.5
 
-    launchpad nil
-
     util   (require "./lib/util.wisp")
     step   (fn []
 
       ; step jumper
       (if (> jumpto -1) (do (set! index jumpto)
                             (set! jumpto -1)))
-
-      ; launchpad -- step indicator
-      (if launchpad (do
-        (.map (util.range 0 8) (fn [i]
-          (launchpad.send [144 i        0])
-          (launchpad.send [144 (+ 16 i) (if (aget kicks  i) 127 0)])
-          (launchpad.send [144 (+ 32 i) (if (aget snares i) 127 0)])
-          (launchpad.send [144 (+ 48 i) (if (aget hihats i) 127 0)])))
-        (launchpad.send [144 index 70])
-        (if (> jumpto -1) (launchpad.send [144 jumpto 90]))))
 
       ; drums
       (if (aget kicks  index)  (kick.play))
@@ -188,42 +176,8 @@
           (after (* 2000 decay (/ 60 tempo))
             (bassline.send-message [144 note 0]))))
 
-      ; sooperlooper - begin recording
-      ;(looper.map (fn [l i]
-        ;(if (= l.state :ready)      (launchpad.send [144 (+ 112 i) 127])))
-        ;(if (= l.state :pre-record) (do (launchpad.send [144 (+ 112 i) 70])
-                                        ;(set! l.state :recording)
-                                        ;(l.record))))
-
       ; advance step index
       (set! index (if (< index 7) (+ index 1) 0)))
-
-
-    ;;
-    ;; controllers
-    ;;
-    nanokontrol (midi.connect-controller "a2j:nano" (fn [dt msg d1 d2]
-      (match [(= msg 189) (> d1 -1) (< d1 8)] (set! (aget phrase d1) d2))
-      (match [(= msg 189) (= d1 16)]          (set! decay (/ d2 127)))
-      (match [(= msg 189) (= d1 17)]          (set! tempo (+ 120 (* 120 (/ d2 127)))))))
-
-    _ (set! launchpad (midi.connect-controller "a2j:Launchpad" (fn [dt msg d1 d2]
-
-      ; jumper
-      (match [(= msg 144) (> d1 -1) (< d1 8)  (= d2 127)]
-        (set! jumpto d1))
-
-      ; drum seq
-      (match [(= msg 144) (> d1 15) (< d1 24) (= d2 127)]
-        (set! (aget kicks  (- d1 16)) (if (aget kicks  (- d1 16)) 0 1)))
-      (match [(= msg 144) (> d1 31) (< d1 40) (= d2 127)]
-        (set! (aget snares (- d1 32)) (if (aget snares (- d1 32)) 0 1)))
-      (match [(= msg 144) (> d1 47) (< d1 56) (= d2 127)]
-        (set! (aget hihats (- d1 48)) (if (aget hihats (- d1 48)) 0 1)))
-
-      ; looper
-      (match [(= msg 144) (> d1 111) (< d1 120 ) (= d2 127)]
-        (set! (aget (aget looper (- d1 112)) "state") :pre-record)))))
 
   ]
 
