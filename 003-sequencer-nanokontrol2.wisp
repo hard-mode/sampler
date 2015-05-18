@@ -203,3 +203,5 @@
     (time.each "step" (str (* 500 (/ 60 tempo)) "m") step)
 
   ))
+
+;# vi:syntax=clojure

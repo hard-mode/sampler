@@ -10,7 +10,7 @@
 (defn start []  (let [
 
     ;;
-    ;; drums
+    ;; drum sounds
     ;;
     sample (require "./plugin/postmelodic.wisp")
     calf   (require "./plugin/calf.wisp")
@@ -60,88 +60,25 @@
 
 
     ;;
-    ;; synths
-    ;;
-
-    ;; how it oughtta be
-    ;midi      (require "./lib/midi.wisp")
-    ;bassline  { :send-message (fn []) }
-    ;yoshimi   (let [inst (jack.client "yoshimi")
-                    ;midi (inst.port   "midi-in")
-                    ;proc (jack.spawn  "yoshimi" "yoshimi")]
-                ;(inst.started.then (fn []
-                  ;(set! bassline (midi.connect-output "yoshimi:midi-in"))))
-                ;(jack.chain "Yoshimi"
-                  ;[ [inst "left"]  [hw "playback_1"]
-                    ;[inst "right"] [hw "playback_2"] ] ))
-
-    midi      (require "./lib/midi.wisp")
-    bassline  { :send-message (fn []) }
-    yoshimi   (jack.client "yoshimi")
-    _         (yoshimi.started.then (fn []
-                (jack.connect-by-name "yoshimi" "left"  "system" "playback_1")
-                (jack.connect-by-name "yoshimi" "right" "system" "playback_2")
-                (set! bassline (midi.connect-output "yoshimi:midi in"))))
-    _         (jack.spawn "yoshimi" "yoshimi")
-
-
-    ;;
-    ;; looper
-    ;;
-    ;sooper (require "./plugin/sooperlooper.wisp")
-    ;looper (sooper.looper 8)
-
-
-    ;;
-    ;; scale thingy
-    ;;
-    teoria    (require "teoria")
-    scale     (teoria.scale "g#" :minor)
-    make-note (fn [n]
-    (let [span   (/ 127 3)
-          octave (Math.floor (/ n span))
-          degree (Math.floor (* 7 (/ (mod n span) span)))
-          note   (scale.get (+ 1 degree))]
-      (if (< octave 1) (note.transpose "P-8"))
-      (if (> octave 1) (note.transpose "P8"))
-      (if (> octave 2) (note.transpose "P8"))
-      note))
-
-
-    ;;
     ;; sequencer
     ;;
-
     time (require "./lib/time.wisp")
 
     tempo  140
     index  0
-    jumpto -1
 
     kicks  [1 1 1 1 1 1 1 1]
     snares [0 0 1 0 0 0 1 1]
     hihats [1 0 1 1 0 1 1 0]
-    phrase [0 0 0 0 0 0 0 0]
     decay  0.5
 
     util   (require "./lib/util.wisp")
     step   (fn []
 
-      ; step jumper
-      (if (> jumpto -1) (do (set! index jumpto)
-                            (set! jumpto -1)))
-
       ; drums
       (if (aget kicks  index)  (kick.play))
       (if (aget snares index) (snare.play))
       (if (aget hihats index) (hihat.play))
-
-      ; yoshimi
-      (if bassline.send-message
-        (let [note (.midi (make-note (aget phrase index)))]
-          (bassline.send-message [144 note 127])
-          (time.after (str (* 2000 decay (/ 60 tempo)) "m")
-            (fn [] (bassline.send-message [144 note 0])))))
 
       ; advance step index
       (set! index (if (< index 7) (+ index 1) 0)))
@@ -151,3 +88,5 @@
     (time.each "step" (str (* 500 (/ 60 tempo)) "m") step)
 
   ))
+
+;# vi:syntax=clojure
