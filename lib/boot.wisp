@@ -1,4 +1,4 @@
-(ns boot (:require [wisp.runtime :refer [= and or str re-pattern]]))
+(ns boot (:require [wisp.runtime :refer [= and or str]]))
 
 ;;
 ;; bootstrapper
@@ -6,6 +6,11 @@
 (set! module.exports (fn [session-module]
   (if (= session-module require.main)
     (let [log       console.log
+
+          persist   { :cleanup [ (fn [] (log "\nExiting..."))] }
+          cleanup   (fn [] (persist.cleanup.map (fn [f] (f))))
+          exit      (fn [] (cleanup) (process.exit))
+
 
           filename  session-module.filename
           session   nil
@@ -23,9 +28,9 @@
                 (if (= mtime stat.mtime) (set! duplicate true))
                 (set! mtime stat.mtime)))
               (if (not duplicate) (do
-                  (log "\n")
-                  (if fname (log "File changed:" fname))
-                  (start)))))
+                (log "\n")
+                (if fname (log "File changed:" fname))
+                (start)))))
 
           chokidar  (require "chokidar")
           chok-opts { :persistent true
@@ -34,8 +39,9 @@
 
       (.install            (require "source-map-support")) 
       (.register-handler   (require "segfault-handler"))
-      (set! global.persist {})
+      (set! global.persist persist)
       (set! global.log     log)
+      (process.on "SIGINT" exit)
       (watcher.on "change" on-change)
 
       (start)))))

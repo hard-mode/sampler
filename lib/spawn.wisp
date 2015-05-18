@@ -16,6 +16,9 @@
                                       { :stdio "inherit" } ; opts
                                     ] ) ]
       (set! (aget persist.spawn id) p)
+      (persist.cleanup.push (fn []
+        (log "Killing" (aget args 0))
+        (p.kill "SIGKILL")))
       p)))
 
 (set! module.exports spawn)
