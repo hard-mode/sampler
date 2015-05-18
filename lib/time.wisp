@@ -1,4 +1,4 @@
-(ns time)
+(ns time (:require [wisp.runtime :refer [and]]))
 
 (def ^:private NanoTimer (require "nanotimer"))
 
@@ -12,7 +12,7 @@
 
 (defn after [t f]
   (let [timer (NanoTimer.)]
-    (timer.setTimeout f [] t)
+    (timer.set-timeout f [] t)
     timer))
 
 (defn each
@@ -20,8 +20,10 @@
     (f)
     (after t (fn [] (each t f))))
   ([n t f]
-    (or
-      (aget state n)
-      (let [timer (each t f)]
-        (set! (aget state n) timer)
-        timer))))
+    (let [old-timer (aget state n)]
+      (console.log "\n\n\nTIMER" old-timer "\n\n\n")
+      (if (and old-timer old-timer.time-out-t1)
+        (old-timer.clear-timeout)))
+    (let [new-timer (each t f)]
+      (set! (aget state n) new-timer)
+      new-timer)))

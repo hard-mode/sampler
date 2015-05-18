@@ -15,23 +15,34 @@
   (let [log       console.log
         filename  module.filename
         session   (require filename)
-        reload    (fn [] 
+        mtime     nil
+        restart   (fn []
           (log "Loading session" filename)
           (delete (aget require.cache filename))
           (set! session (require filename))
-          (log "Starting session" filename)
+          (log "Starting session" filename "\n")
           (session.start))
+        on-change (fn [fname stat]
+          (let [duplicate false]
+            (if stat (do
+              (if (= mtime stat.mtime) (set! duplicate true))
+              (set! mtime stat.mtime)))
+            (if (not duplicate) (do
+                (log "\n")
+                (if fname (log "File changed:" fname))
+                (restart)))))
         watcher  (.watch (require "chokidar")
           module.filename
-          { :persistent true }) ]
+          { :persistent true
+            :alwaysStat true }) ]
 
     (.install            (require "source-map-support")) 
     (.register-handler   (require "segfault-handler"))
     (set! global.persist {})
     (set! global.log     log)
-    (watcher.on "change" reload)
+    (watcher.on "change" on-change)
 
-    (reload)))
+    (restart)))
 
 ;;
 ;; session code
@@ -147,7 +158,7 @@
     index  0
     jumpto -1
 
-    kicks  [1 0 0 1 0 1 0 0]
+    kicks  [1 0 0 1 0 0 0 0]
     snares [0 0 1 0 0 0 1 0]
     hihats [1 0 0 1 0 0 1 0]
     phrase [0 0 0 0 0 0 0 0]
@@ -177,6 +188,6 @@
 
   ]
 
-    (time.each (str (* 500 (/ 60 tempo)) "m") step)
+    (time.each "step" (str (* 500 (/ 60 tempo)) "m") step)
 
   ))
