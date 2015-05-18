@@ -2,47 +2,7 @@
 
 (ns sampler (:require [wisp.runtime :refer [= and or str re-pattern]]))
 
-;;
-;; TODO macro imports
-;;
-(defmacro match [args & body]
-  `(if (and ~@args) (do ~@body)))
-
-;;
-;; bootstrapper
-;;
-(if (= module require.main)
-  (let [log       console.log
-        filename  module.filename
-        session   (require filename)
-        mtime     nil
-        restart   (fn []
-          (log "Loading session" filename)
-          (delete (aget require.cache filename))
-          (set! session (require filename))
-          (log "Starting session" filename "\n")
-          (session.start))
-        on-change (fn [fname stat]
-          (let [duplicate false]
-            (if stat (do
-              (if (= mtime stat.mtime) (set! duplicate true))
-              (set! mtime stat.mtime)))
-            (if (not duplicate) (do
-                (log "\n")
-                (if fname (log "File changed:" fname))
-                (restart)))))
-        watcher  (.watch (require "chokidar")
-          module.filename
-          { :persistent true
-            :alwaysStat true }) ]
-
-    (.install            (require "source-map-support")) 
-    (.register-handler   (require "segfault-handler"))
-    (set! global.persist {})
-    (set! global.log     log)
-    (watcher.on "change" on-change)
-
-    (restart)))
+((require "./lib/boot.wisp") module)
 
 ;;
 ;; session code
