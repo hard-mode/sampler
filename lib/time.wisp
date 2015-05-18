@@ -17,13 +17,13 @@
 
 (defn each
   ([t f]
-    (f)
-    (after t (fn [] (each t f))))
+    (let [timer (NanoTimer.)]
+      (timer.set-interval f [] t)
+      timer))
   ([n t f]
     (let [old-timer (aget state n)]
       (console.log "\n\n\nTIMER" old-timer "\n\n\n")
-      (if (and old-timer old-timer.time-out-t1)
-        (old-timer.clear-timeout)))
+      (if old-timer (old-timer.clear-interval)))
     (let [new-timer (each t f)]
       (set! (aget state n) new-timer)
       new-timer)))
