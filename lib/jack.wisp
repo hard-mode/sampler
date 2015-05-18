@@ -167,7 +167,12 @@
   (log "connecting:        "
     (str output-c ":" output-p)
     (str input-c  ":" input-p))
-  (persist.jack.patchbay.ConnectPortsByName output-c output-p input-c input-p))
+  (persist.jack.patchbay.ConnectPortsByName
+    output-c output-p input-c input-p)
+  (persist.cleanup.push (fn []
+    (log "Disconnecting" output-c output-p input-c input-p)
+    (persist.jack.patchbay.DisconnectPortsByName
+      output-c output-p input-c input-p))))
 
 (defn connect-by-id [output-c output-p input-c input-p]
   (persist.jack.patchbay.ConnectPortsByID output-c output-p input-c input-p))
