@@ -2,43 +2,13 @@
 
 (ns sampler (:require [wisp.runtime :refer [= and or str re-pattern]]))
 
+((require "./lib/boot.wisp") module)
+
 ;;
 ;; TODO macro imports
-;; TODO time/transport module
 ;;
-(defmacro each [t & body]
- `(setInterval (fn [] ~@body) ~t))
-
-(defmacro after [t & body]
- `(setTimeout (fn [] ~@body) ~t))
-
 (defmacro match [args & body]
   `(if (and ~@args) (do ~@body)))
-
-;;
-;; bootstrapper
-;;
-(if (= module require.main)
-  (let [log       console.log
-        filename  module.filename
-        session   (require filename)
-        reload    (fn [] 
-          (log "Loading session" filename)
-          (delete (aget require.cache filename))
-          (set! session (require filename))
-          (log "Starting session" filename)
-          (session.start))
-        watcher  (.watch (require "chokidar")
-          module.filename
-          { :persistent true }) ]
-
-    (.install            (require "source-map-support")) 
-    (.register-handler   (require "segfault-handler"))
-    (set! global.persist {})
-    (set! global.log     log)
-    (watcher.on "change" reload)
-
-    (reload)))
 
 ;;
 ;; session code
@@ -147,6 +117,9 @@
     ;;
     ;; sequencer
     ;;
+
+    time (require "./lib/time.wisp")
+
     tempo  140
     index  0
     jumpto -1
@@ -185,8 +158,8 @@
       (if bassline.send-message
         (let [note (.midi (make-note (aget phrase index)))]
           (bassline.send-message [144 note 127])
-          (after (* 2000 decay (/ 60 tempo))
-            (bassline.send-message [144 note 0]))))
+          (time.after (str (* 2000 decay (/ 60 tempo)) "m")
+            (fn [] (bassline.send-message [144 note 0])))))
 
       ; sooperlooper - begin recording
       ;(looper.map (fn [l i]
@@ -227,7 +200,6 @@
 
   ]
 
-    (require "qtimers")
-    (each (* 500 (/ 60 tempo)) (step))
+    (time.each "step" (str (* 500 (/ 60 tempo)) "m") step)
 
   ))

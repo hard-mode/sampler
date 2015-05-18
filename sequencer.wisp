@@ -118,8 +118,8 @@
     index  0
     jumpto -1
 
-    kicks  [1 1 0 1 0 1 0 1]
-    snares [0 0 1 0 0 0 0 1]
+    kicks  [1 1 1 1 1 1 1 1]
+    snares [0 0 1 0 0 0 1 1]
     hihats [1 0 1 1 0 1 1 0]
     phrase [0 0 0 0 0 0 0 0]
     decay  0.5
