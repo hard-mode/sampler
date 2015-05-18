@@ -4,14 +4,7 @@
 
 ;;
 ;; TODO macro imports
-;; TODO time/transport module
 ;;
-(defmacro each [t & body]
- `(setInterval (fn [] ~@body) ~t))
-
-(defmacro after [t & body]
- `(setTimeout (fn [] ~@body) ~t))
-
 (defmacro match [args & body]
   `(if (and ~@args) (do ~@body)))
 
@@ -147,11 +140,14 @@
     ;;
     ;; sequencer
     ;;
+
+    time (require "./lib/time.wisp")
+
     tempo  140
     index  0
     jumpto -1
 
-    kicks  [1 0 0 0 0 1 0 0]
+    kicks  [1 0 0 1 0 1 0 0]
     snares [0 0 1 0 0 0 1 0]
     hihats [1 0 0 1 0 0 1 0]
     phrase [0 0 0 0 0 0 0 0]
@@ -173,15 +169,14 @@
       (if bassline.send-message
         (let [note (.midi (make-note (aget phrase index)))]
           (bassline.send-message [144 note 127])
-          (after (* 2000 decay (/ 60 tempo))
-            (bassline.send-message [144 note 0]))))
+          (time.after (str (* 2000 decay (/ 60 tempo)) "m")
+            (fn [] (bassline.send-message [144 note 0])))))
 
       ; advance step index
       (set! index (if (< index 7) (+ index 1) 0)))
 
   ]
 
-    (require "qtimers")
-    (each (* 500 (/ 60 tempo)) (step))
+    (time.each (str (* 500 (/ 60 tempo)) "m") step)
 
   ))
