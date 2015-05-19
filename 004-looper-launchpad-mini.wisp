@@ -1,6 +1,6 @@
 #!/usr/bin/env ./node_modules/wisp/bin/wisp.js
 
-(ns sampler (:require [wisp.runtime :refer [= and or str re-pattern]]))
+(ns sampler (:require [wisp.runtime :refer [= and or str re-pattern assoc]]))
 
 ((require "./lib/boot.wisp") module)
 
@@ -77,18 +77,26 @@
     ;; synths
     ;;
 
-    carla     (require "./plugin/carla.wisp")
-    synth           (let [inst (carla.lv2 "Dexed" "https://github.com/asb2m10/dexed")
-                          fx   (calf      "DexFX" [ "mono" "eq5" "compressor" "stereo" ])]
-                      (jack.chain "Dexed"
-                        [ [inst "Audio Output 1"] [fx "mono In #1"]
-                          [fx   "stereo Out #1"]  [hw "playback_1"]
-                          [fx   "stereo Out #2"]  [hw "playback_2"] ])
-                      inst)
+    midi  (require "./lib/midi.wisp")
+    carla (require "./plugin/carla.wisp")
+
+    synth (let [inst (carla.lv2 "Dexed" "https://github.com/asb2m10/dexed")
+                fx   (calf      "DexFX" [ "mono" "eq5" "compressor" "stereo" ])]
+            (jack.chain "Dexed"
+              [ [inst "Audio Output 1"] [fx "mono In #1"]
+                [fx   "stereo Out #1"]  [hw "playback_1"]
+                [fx   "stereo Out #2"]  [hw "playback_2"] ])
+            inst)
 
     synth-octave    5
-    synth-note-on   (fn [note] (console.log "NOTE ON"  (+ note (* 12 synth-octave))))
-    synth-note-off  (fn [note] (console.log "NOTE OFF" (+ note (* 12 synth-octave))))
+    synth-midi      nil
+    synth-note-on   (fn [])
+    synth-note-off  (fn [])
+
+    _ (synth.client.started.then (fn []
+        (set! synth-midi     (midi.connect-output "Dexed"))
+        (set! synth-note-on  (fn [note] (synth-midi.send-message [144 (+ note (* 12 synth-octave)) 127])))
+        (set! synth-note-off (fn [note] (synth-midi.send-message [144 (+ note (* 12 synth-octave)) 0  ])))))
 
     ;;
     ;; looper
@@ -156,8 +164,6 @@
     ;;
     ;; controllers
     ;;
-
-    midi (require "./lib/midi.wisp")
 
     _ (set! launchpad (midi.connect-controller "a2j:Launchpad" (fn [dt msg d1 d2]
 
