@@ -22,7 +22,6 @@
       timer))
   ([n t f]
     (let [old-timer (aget state n)]
-      (console.log "\n\n\nTIMER" old-timer "\n\n\n")
       (if old-timer (old-timer.clear-interval)))
     (let [new-timer (each t f)]
       (set! (aget state n) new-timer)

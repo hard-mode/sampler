@@ -69,49 +69,14 @@
     ;; synths
     ;;
 
-    ;; how it oughtta be
-    ;midi      (require "./lib/midi.wisp")
-    ;bassline  { :send-message (fn []) }
-    ;yoshimi   (let [inst (jack.client "yoshimi")
-                    ;midi (inst.port   "midi-in")
-                    ;proc (jack.spawn  "yoshimi" "yoshimi")]
-                ;(inst.started.then (fn []
-                  ;(set! bassline (midi.connect-output "yoshimi:midi-in"))))
-                ;(jack.chain "Yoshimi"
-                  ;[ [inst "left"]  [hw "playback_1"]
-                    ;[inst "right"] [hw "playback_2"] ] ))
-
-    midi      (require "./lib/midi.wisp")
-    bassline  { :send-message (fn []) }
-    yoshimi   (jack.client "yoshimi")
-    _         (yoshimi.started.then (fn []
-                (jack.connect-by-name "yoshimi" "left"  "system" "playback_1")
-                (jack.connect-by-name "yoshimi" "right" "system" "playback_2")
-                (set! bassline (midi.connect-output "yoshimi:midi in"))))
-    _         (jack.spawn "yoshimi" "yoshimi")
-
+    lpd       (require "./plugin/novation-launchpad.wisp")
+    launchpad (.connect lpd)
 
     ;;
     ;; looper
     ;;
     ;sooper (require "./plugin/sooperlooper.wisp")
     ;looper (sooper.looper 8)
-
-
-    ;;
-    ;; scale thingy
-    ;;
-    teoria    (require "teoria")
-    scale     (teoria.scale "g#" :minor)
-    make-note (fn [n]
-    (let [span   (/ 127 3)
-          octave (Math.floor (/ n span))
-          degree (Math.floor (* 7 (/ (mod n span) span)))
-          note   (scale.get (+ 1 degree))]
-      (if (< octave 1) (note.transpose "P-8"))
-      (if (> octave 1) (note.transpose "P8"))
-      (if (> octave 2) (note.transpose "P8"))
-      note))
 
 
     ;;
@@ -140,26 +105,22 @@
                             (set! jumpto -1)))
 
       ; launchpad -- step indicator
-      (if launchpad (do
-        (.map (util.range 0 8) (fn [i]
-          (launchpad.send [144 i        0])
-          (launchpad.send [144 (+ 16 i) (if (aget kicks  i) 127 0)])
-          (launchpad.send [144 (+ 32 i) (if (aget snares i) 127 0)])
-          (launchpad.send [144 (+ 48 i) (if (aget hihats i) 127 0)])))
-        (launchpad.send [144 index 70])
-        (if (> jumpto -1) (launchpad.send [144 jumpto 90]))))
+      (if launchpad (let
+        [kbd (lpd.keyboard lpd.grid-xy 4)]
+          (kbd.map (fn [i]
+            (launchpad.send [(aget i 0) (aget i 1) 60])))
+          (.map (util.range 0 8) (fn [i]
+            (launchpad.send [144 i        0])
+            (launchpad.send [144 (+ 16 i) (if (aget kicks  i) 127 0)])
+            (launchpad.send [144 (+ 32 i) (if (aget snares i) 127 0)])
+            (launchpad.send [144 (+ 48 i) (if (aget hihats i) 127 0)])))
+          (launchpad.send [144 index 70])
+          (if (> jumpto -1) (launchpad.send [144 jumpto 90]))))
 
       ; drums
       (if (aget kicks  index)  (kick.play))
       (if (aget snares index) (snare.play))
       (if (aget hihats index) (hihat.play))
-
-      ; yoshimi
-      (if bassline.send-message
-        (let [note (.midi (make-note (aget phrase index)))]
-          (bassline.send-message [144 note 127])
-          (time.after (str (* 2000 decay (/ 60 tempo)) "m")
-            (fn [] (bassline.send-message [144 note 0])))))
 
       ; sooperlooper - begin recording
       ;(looper.map (fn [l i]
@@ -175,10 +136,8 @@
     ;;
     ;; controllers
     ;;
-    nanokontrol (midi.connect-controller "a2j:nano" (fn [dt msg d1 d2]
-      (match [(= msg 189) (> d1 -1) (< d1 8)] (set! (aget phrase d1) d2))
-      (match [(= msg 189) (= d1 16)]          (set! decay (/ d2 127)))
-      (match [(= msg 189) (= d1 17)]          (set! tempo (+ 120 (* 120 (/ d2 127)))))))
+
+    midi (require "./lib/midi.wisp")
 
     _ (set! launchpad (midi.connect-controller "a2j:Launchpad" (fn [dt msg d1 d2]
 
