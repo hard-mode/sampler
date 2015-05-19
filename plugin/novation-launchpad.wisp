@@ -29,7 +29,7 @@
 
 ; grid mode
 
-(def grid-xy     (by 8 8 (fn [x y] [144 (+ x (* 16 y))])))
+(def grid-xy     (by 8 8 (fn [x y] (+ x (* 16 y)))))
 
 (def grid-xy-cw  (by 8 8 (fn [x y] (aget (aget grid-xy (- 7 x)) y))))
 

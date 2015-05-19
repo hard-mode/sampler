@@ -66,12 +66,29 @@
 
 
     ;;
-    ;; synths
+    ;; launchpad
     ;;
 
     lpd       (require "./plugin/novation-launchpad.wisp")
     launchpad (.connect lpd)
     lpd-kbd   (lpd.keyboard lpd.grid-xy 4)
+
+    ;;
+    ;; synths
+    ;;
+
+    carla     (require "./plugin/carla.wisp")
+    synth           (let [inst (carla.lv2 "Dexed" "https://github.com/asb2m10/dexed")
+                          fx   (calf      "DexFX" [ "mono" "eq5" "compressor" "stereo" ])]
+                      (jack.chain "Dexed"
+                        [ [inst "Audio Output 1"] [fx "mono In #1"]
+                          [fx   "stereo Out #1"]  [hw "playback_1"]
+                          [fx   "stereo Out #2"]  [hw "playback_2"] ])
+                      inst)
+
+    synth-octave    5
+    synth-note-on   (fn [note] (console.log "NOTE ON"  (+ note (* 12 synth-octave))))
+    synth-note-off  (fn [note] (console.log "NOTE OFF" (+ note (* 12 synth-octave))))
 
     ;;
     ;; looper
@@ -118,7 +135,7 @@
 
         ; keyboard
         (lpd-kbd.map (fn [i]
-          (launchpad.send [(aget i 0) (aget i 1) 60]))))
+          (launchpad.send [144 i 60]))))
 
       ; drums
       (if (aget kicks  index)  (kick.play))
@@ -143,6 +160,13 @@
     midi (require "./lib/midi.wisp")
 
     _ (set! launchpad (midi.connect-controller "a2j:Launchpad" (fn [dt msg d1 d2]
+
+      ; synth
+      (let [kbd-key (lpd-kbd.index-of d1)]
+        (if (> kbd-key -1)
+          (if (= d2 127)
+            (synth-note-on  kbd-key)
+            (synth-note-off kbd-key))))
 
       ; jumper
       (match [(= msg 144) (> d1 -1) (< d1 8)  (= d2 127)]
