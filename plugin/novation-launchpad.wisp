@@ -58,17 +58,19 @@
 (defn- get2 [a x y] (aget (aget a x) y))
 
 (defn keyboard [grid y] [
-  (get2 grid      y  1) ; black keys
-  (get2 grid      y  2)
-  (get2 grid      y  4)
-  (get2 grid      y  5)
-  (get2 grid      y  6)
 
-  (get2 grid (+ 1 y) 0) ; white keys
-  (get2 grid (+ 1 y) 1)
-  (get2 grid (+ 1 y) 2)
-  (get2 grid (+ 1 y) 3)
-  (get2 grid (+ 1 y) 4)
-  (get2 grid (+ 1 y) 5)
-  (get2 grid (+ 1 y) 6)
-  (get2 grid (+ 1 y) 7) ])
+  (get2 grid (+ 1 y) 0) ; C
+  (get2 grid      y  1) ; C#
+  (get2 grid (+ 1 y) 1) ; D
+  (get2 grid      y  2) ; D#
+  (get2 grid (+ 1 y) 2) ; E
+  (get2 grid (+ 1 y) 3) ; F
+  (get2 grid      y  4) ; F#
+  (get2 grid (+ 1 y) 4) ; G
+  (get2 grid      y  5) ; G#
+  (get2 grid (+ 1 y) 5) ; A
+  (get2 grid      y  6) ; A#
+  (get2 grid (+ 1 y) 6) ; B
+  (get2 grid (+ 1 y) 7) ; C
+
+])

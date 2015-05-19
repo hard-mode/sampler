@@ -71,6 +71,7 @@
 
     lpd       (require "./plugin/novation-launchpad.wisp")
     launchpad (.connect lpd)
+    lpd-kbd   (lpd.keyboard lpd.grid-xy 4)
 
     ;;
     ;; looper
@@ -95,27 +96,29 @@
     phrase [0 0 0 0 0 0 0 0]
     decay  0.5
 
-    launchpad nil
-
     util   (require "./lib/util.wisp")
     step   (fn []
 
-      ; step jumper
+      ; beat jumper
       (if (> jumpto -1) (do (set! index jumpto)
                             (set! jumpto -1)))
 
       ; launchpad -- step indicator
-      (if launchpad (let
-        [kbd (lpd.keyboard lpd.grid-xy 4)]
-          (kbd.map (fn [i]
-            (launchpad.send [(aget i 0) (aget i 1) 60])))
-          (.map (util.range 0 8) (fn [i]
-            (launchpad.send [144 i        0])
-            (launchpad.send [144 (+ 16 i) (if (aget kicks  i) 127 0)])
-            (launchpad.send [144 (+ 32 i) (if (aget snares i) 127 0)])
-            (launchpad.send [144 (+ 48 i) (if (aget hihats i) 127 0)])))
-          (launchpad.send [144 index 70])
-          (if (> jumpto -1) (launchpad.send [144 jumpto 90]))))
+      (if launchpad
+
+        ; beat jumper
+        ;(if (> jumpto -1) (launchpad.send [144 jumpto 90]))
+
+        ; drums
+        (.map (util.range 0 8) (fn [i]
+          (launchpad.send [144 i        (if (= index i)     70 0)])
+          (launchpad.send [144 (+ 16 i) (if (aget kicks  i) 127 0)])
+          (launchpad.send [144 (+ 32 i) (if (aget snares i) 127 0)])
+          (launchpad.send [144 (+ 48 i) (if (aget hihats i) 127 0)])))
+
+        ; keyboard
+        (lpd-kbd.map (fn [i]
+          (launchpad.send [(aget i 0) (aget i 1) 60]))))
 
       ; drums
       (if (aget kicks  index)  (kick.play))
