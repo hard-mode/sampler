@@ -25,16 +25,14 @@
 (defn connect-output [port-name]
   (let [m (or (aget persist.midi.outputs port-name)
               (new midi.output))]
-    (get-port-by-name m port-name (fn [port-number]
-      (console.log "OUT ::" port-number (m.get-port-name port-number))
-      (m.open-port port-number)))
+    (get-port-by-name m port-name
+      (fn [port-number] (m.open-port port-number)))
     m))
 
 (defn connect-input [port-name callback]
   (let [m (or (aget persist.midi.inputs port-name)
               (new midi.input))]
     (get-port-by-name m port-name (fn [port-number]
-      (console.log " IN ::" port-number (m.get-port-name port-number))
       (m.open-port port-number)
       (m.on "message" (fn [dt message]
         (let [msg (aget message 0)
