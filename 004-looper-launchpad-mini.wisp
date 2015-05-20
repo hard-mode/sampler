@@ -83,9 +83,9 @@
     synth (let [inst (carla.lv2 "Dexed" "https://github.com/asb2m10/dexed")
                 fx   (calf      "DexFX" [ "mono" "eq5" "compressor" "stereo" ])]
             (jack.chain "Dexed"
-              [ [inst "Audio Output 1"] [fx "mono In #1"]
-                [fx   "stereo Out #1"]  [hw "playback_1"]
-                [fx   "stereo Out #2"]  [hw "playback_2"] ])
+              [ [inst "Audio Output 1"] [fx "mono In #1"] ]
+              [ [fx   "stereo Out #1"]  [hw "playback_1"] ]
+              [ [fx   "stereo Out #2"]  [hw "playback_2"] ])
             inst)
 
     synth-octave    5
@@ -129,7 +129,7 @@
                             (set! jumpto -1)))
 
       ; launchpad -- step indicator
-      (if launchpad
+      (if launchpad (do
 
         ; beat jumper
         ;(if (> jumpto -1) (launchpad.send [144 jumpto 90]))
@@ -142,8 +142,7 @@
           (launchpad.send [144 (+ 48 i) (if (aget hihats i) 127 0)])))
 
         ; keyboard
-        (lpd-kbd.map (fn [i]
-          (launchpad.send [144 i 60]))))
+        (lpd-kbd.map (fn [i] (launchpad.send [144 i 60])))))
 
       ; drums
       (if (aget kicks  index)  (kick.play))
