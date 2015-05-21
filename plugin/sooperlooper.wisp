@@ -1,10 +1,11 @@
 (ns looper (:require [wisp.runtime :refer [str]]))
 
 (def ^:private child (require "child_process"))
+(def ^:private jack  (require "../lib/jack.wisp"))
 (def ^:private osc   (require "../lib/osc.wisp"))
 (def ^:private util  (require "../lib/util.wisp"))
 
-(defn sooperlooper "sooperlooper")
+(def sooperlooper "slgui")
 
 (defn looper [tracks]
   (let [osc-client (osc.client)

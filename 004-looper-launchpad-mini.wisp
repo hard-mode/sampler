@@ -71,7 +71,8 @@
 
     lpd       (require "./plugin/novation-launchpad.wisp")
     launchpad (.connect lpd)
-    lpd-kbd   (lpd.keyboard lpd.grid-xy 4)
+    lpd-kbd-1 (lpd.keyboard lpd.grid-xy 3)
+    lpd-kbd-2 (lpd.keyboard lpd.grid-xy 5)
 
     ;;
     ;; synths
@@ -88,7 +89,7 @@
               [ [fx   "stereo Out #2"]  [hw "playback_2"] ])
             inst)
 
-    synth-octave    5
+    synth-octave    4
     synth-midi      nil
     synth-note-on   (fn [])
     synth-note-off  (fn [])
@@ -136,13 +137,17 @@
 
         ; drums
         (.map (util.range 0 8) (fn [i]
-          (launchpad.send [144 i        (if (= index i)     70 0)])
-          (launchpad.send [144 (+ 16 i) (if (aget kicks  i) 127 0)])
-          (launchpad.send [144 (+ 32 i) (if (aget snares i) 127 0)])
-          (launchpad.send [144 (+ 48 i) (if (aget hihats i) 127 0)])))
+          (let [btn (aget lpd.circles-top i)]
+            (launchpad.send [(aget btn 0) (aget btn 1) (if (= index i) 70 0)]))
+          (launchpad.send [144 (+ 0 i) (if (aget kicks  i) 127 0)])
+          (launchpad.send [144 (+ 16 i) (if (aget snares i) 127 0)])
+          (launchpad.send [144 (+ 32 i) (if (aget hihats i) 127 0)])))
 
         ; keyboard
-        (lpd-kbd.map (fn [i] (launchpad.send [144 i 60])))))
+        (lpd-kbd-1.map (fn [i] (launchpad.send [144 i 60])))
+        (lpd-kbd-2.map (fn [i] (launchpad.send [144 i 60])))
+
+      ))
 
       ; drums
       (if (aget kicks  index)  (kick.play))
@@ -167,23 +172,28 @@
     _ (set! launchpad (midi.connect-controller "a2j:Launchpad" (fn [dt msg d1 d2]
 
       ; synth
-      (let [kbd-key (lpd-kbd.index-of d1)]
+      (let [kbd-key (lpd-kbd-1.index-of d1)]
         (if (> kbd-key -1)
           (if (= d2 127)
             (synth-note-on  kbd-key)
             (synth-note-off kbd-key))))
+      (let [kbd-key (lpd-kbd-2.index-of d1)]
+        (if (> kbd-key -1)
+          (if (= d2 127)
+            (synth-note-on  (- kbd-key 12))
+            (synth-note-off (- kbd-key 12)))))
 
       ; jumper
-      (match [(= msg 144) (> d1 -1) (< d1 8)  (= d2 127)]
-        (set! jumpto d1))
+      (match [(= msg 176) (> d1 103) (< d1 112)  (= d2 127)]
+        (set! jumpto (- d1 104)))
 
       ; drum seq
+      (match [(= msg 144) (> d1 -1) (< d1 8) (= d2 127)]
+        (set! (aget kicks  (- d1 0))  (if (aget kicks  (- d1 0))  0 1)))
       (match [(= msg 144) (> d1 15) (< d1 24) (= d2 127)]
-        (set! (aget kicks  (- d1 16)) (if (aget kicks  (- d1 16)) 0 1)))
+        (set! (aget snares (- d1 16)) (if (aget snares (- d1 16)) 0 1)))
       (match [(= msg 144) (> d1 31) (< d1 40) (= d2 127)]
-        (set! (aget snares (- d1 32)) (if (aget snares (- d1 32)) 0 1)))
-      (match [(= msg 144) (> d1 47) (< d1 56) (= d2 127)]
-        (set! (aget hihats (- d1 48)) (if (aget hihats (- d1 48)) 0 1)))
+        (set! (aget hihats (- d1 32)) (if (aget hihats (- d1 32)) 0 1)))
 
       ; looper
       (match [(= msg 144) (> d1 111) (< d1 120 ) (= d2 127)]
