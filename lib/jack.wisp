@@ -14,7 +14,7 @@
 
 (set! persist.jack (or persist.jack
   { :started     false
-    :events      (event2.EventEmitter2.)
+    :events      (event2.EventEmitter2. { :maxListeners 64 })
     :clients     {}
     :connections {} }))
 
