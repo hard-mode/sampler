@@ -103,8 +103,14 @@
     ;; looper
     ;;
 
-    sooper (require "./plugin/sooperlooper.wisp")
-    looper (sooper.looper "Looper" 8)
+    sooper  (require "./plugin/sooperlooper.wisp")
+    looper  (let [inst (sooper.looper "Looper" 8)]
+              (jack.chain "Looper"
+                [ [synth "stereo Out #1"] [inst "common_in_1"] ]
+                [ [synth "stereo Out #2"] [inst "common_in_2"] ]
+                [ [inst "common_out_1"]   [hw "playback_1"]    ]
+                [ [inst "common_out_2"]   [hw "playback_2"]    ])
+              inst)
 
     ;;
     ;; sequencer
@@ -155,11 +161,11 @@
       (if (aget hihats index) (hihat.play))
 
       ; sooperlooper - begin recording
-      ;(looper.map (fn [l i]
-        ;(if (= l.state :ready)      (launchpad.send [144 (+ 112 i) 127])))
-        ;(if (= l.state :pre-record) (do (launchpad.send [144 (+ 112 i) 70])
-                                        ;(set! l.state :recording)
-                                        ;(l.record))))
+      (looper.tracks.map (fn [l i]
+        (if (= l.state :ready)      (launchpad.send [144 (+ 112 i) 127]))
+        (if (= l.state :pre-record) (do (launchpad.send [144 (+ 112 i) 70])
+                                        (set! l.state :recording)
+                                        (l.record)))))
 
       ; advance step index
       (set! index (if (< index 7) (+ index 1) 0)))
@@ -197,7 +203,7 @@
 
       ; looper
       (match [(= msg 144) (> d1 111) (< d1 120 ) (= d2 127)]
-        (set! (aget (aget looper (- d1 112)) "state") :pre-record)))))
+        (set! (aget (aget looper.tracks (- d1 112)) "state") :pre-record)))))
 
   ]
 
