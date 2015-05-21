@@ -7,15 +7,18 @@
 
 (def sooperlooper "slgui")
 
-(defn looper [tracks]
-  (let [osc-client (osc.client)
-        looper     (jack.spawn
+(defn looper [client-name tracks]
+  (let [osc-client  (osc.client)
+        jack-client (jack.client client-name)
+        looper      (jack.spawn
+                      client-name
                       sooperlooper
+                      "-J" client-name
                       "-l" tracks
                       "-c" 2
-                      "-t" 40
-                      "-D" "yes"
-                      "-p" osc-client.port)]
+                      "-t" 10)]
+                      ;"-D" "yes"
+                      ;"-p" osc-client.port)]
 
     (.map (util.range tracks) (fn [i]
       (let [n (str "/sl/" i "/hit")]

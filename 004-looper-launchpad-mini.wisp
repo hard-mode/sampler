@@ -102,9 +102,9 @@
     ;;
     ;; looper
     ;;
-    ;sooper (require "./plugin/sooperlooper.wisp")
-    ;looper (sooper.looper 8)
 
+    sooper (require "./plugin/sooperlooper.wisp")
+    looper (sooper.looper "Looper" 8)
 
     ;;
     ;; sequencer
