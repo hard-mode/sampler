@@ -74,3 +74,8 @@
   (get2 grid (+ 1 y) 7) ; C
 
 ])
+
+; find controller and establish connection
+
+(defn connect []
+  { :on (fn []) })

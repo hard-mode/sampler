@@ -26,3 +26,6 @@
     (let [new-timer (each t f)]
       (set! (aget state n) new-timer)
       new-timer)))
+
+(defn transport []
+  { :each (fn [interval callback]) })
