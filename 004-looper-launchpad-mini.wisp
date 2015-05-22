@@ -94,7 +94,7 @@
     synth-note-off  (fn [])
 
     _ (synth.client.started.then (fn []
-        (set! synth-midi     (midi.connect-output "Dexed"))
+        (set! synth-midi     (midi.connect-output "Noize Mak3r"))
         (set! synth-note-on  (fn [note] (synth-midi.send-message [144 (+ note (* 12 synth-octave)) 127])))
         (set! synth-note-off (fn [note] (synth-midi.send-message [144 (+ note (* 12 synth-octave)) 0  ])))))
 
