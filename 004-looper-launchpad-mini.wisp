@@ -81,13 +81,12 @@
     midi  (require "./lib/midi.wisp")
     carla (require "./plugin/carla.wisp")
 
-    synth (let [inst (carla.lv2 "Dexed" "https://github.com/asb2m10/dexed")
-                fx   (calf      "DexFX" [ "mono" "eq5" "compressor" "stereo" ])]
-            (jack.chain "Dexed"
-              [ [inst "Audio Output 1"] [fx "mono In #1"] ]
-              [ [fx   "stereo Out #1"]  [hw "playback_1"] ]
-              [ [fx   "stereo Out #2"]  [hw "playback_2"] ])
-            inst)
+    synth    (carla.lv2  "Noize Mak3r" "http://kunz.corrupt.ch/products/tal-noisemaker")
+    synth-fx (calf       "SynFX" [ "mono" "eq5" "compressor" "stereo" ])
+    _        (jack.chain "Synth"
+               [ [synth    "Audio Output 1"] [synth-fx "mono In #1"] ]
+               [ [synth-fx "stereo Out #1"]  [hw       "playback_1"] ]
+               [ [synth-fx "stereo Out #2"]  [hw       "playback_2"] ] )
 
     synth-octave    4
     synth-midi      nil
@@ -104,13 +103,12 @@
     ;;
 
     sooper  (require "./plugin/sooperlooper.wisp")
-    looper  (let [inst (sooper.looper "Looper" 8)]
-              (jack.chain "Looper"
-                [ [synth "stereo Out #1"] [inst "common_in_1"] ]
-                [ [synth "stereo Out #2"] [inst "common_in_2"] ]
-                [ [inst "common_out_1"]   [hw "playback_1"]    ]
-                [ [inst "common_out_2"]   [hw "playback_2"]    ])
-              inst)
+    looper  (sooper.looper "Looper" 8)
+    _       (jack.chain "Looper"
+              [ [synth-fx "stereo Out #1"] [looper "common_in_1"] ]
+              [ [synth-fx "stereo Out #2"] [looper "common_in_2"] ]
+              [ [looper   "common_out_1"]  [hw "playback_1"]      ]
+              [ [looper   "common_out_2"]  [hw "playback_2"]      ])
 
     ;;
     ;; sequencer
