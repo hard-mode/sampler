@@ -30,19 +30,28 @@
     ;;
     time (require "./lib/time.wisp")
 
-    tempo  140
+    tempo  220
     index  0
 
-    kicks  [1 0 0 1 0 1 0 0]
-    snares [0 0 1 0 0 0 1 0]
-    hihats [0 1 0 1 0 1 0 1]
-    decay  0.5
+    kicks  [0 0 0 0 0 0 0 0]
+    snares [0 0 0 0 0 0 0 0]
+    hihats [0 0 0 0 0 0 0 0]
 
     util   (require "./lib/util.wisp")
     step   (fn [] (if (aget kicks  index)  (kick.play))
                   (if (aget snares index) (snare.play))
                   (if (aget hihats index) (hihat.play))
                   (set! index (if (< index 7) (+ index 1) 0)))
+
+    ;;
+    ;; web ui
+    ;;
+    web       (require "./lib/web.wisp")
+    send-html (require "send-data/html")
+
+    server (web.server 2097
+      (web.page "/" (fn [req resp]
+        (send-html req resp "foo"))))
 
   ]
 

@@ -13,6 +13,7 @@
     "q": "^1.4.0",
     "recursive-readdir": "^1.2.1",
     "segfault-handler": "^0.2.4",
+    "send-data": "^7.0.0",
     "source-map-support": "^0.2.10",
     "teoria": "^1.6.0",
     "teoria-chord-progression": "^0.1.3",
