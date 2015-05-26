@@ -47,3 +47,36 @@
     { :in   i
       :out  o
       :send (.bind o.send-message o) }))
+
+
+; version 2
+(defn do-get-port-by-name [midi-io port-match callback]
+  (let [port-count (midi-io.get-port-count)]
+    (loop [port-number 0]
+      (if (< port-number port-count)
+        (let [port-name (midi-io.get-port-name port-number)]
+          (if (= 0 (port-name.index-of port-match))
+            (callback port-number)
+            (recur (+ port-number 1))))))))
+
+(defn open-virtual-port [m port-name]
+  (m.open-virtual-port port-name)
+  m)
+
+(defn connect-to-input [port-name]
+  (let [m (aget persist.midi.outputs port-name)]
+    (if m m
+      (let [m  (open-virtual-port (new midi.output) port-name)
+            hw (.port (aget jack.clients "a2j") port-name)]
+        (set! (aget persist.midi.outputs port-name) m)
+        (a2j.started.then (fn []))
+        m))))
+
+(defn connect-to-output [port-name]
+  (let [m (aget persist.midi.inputs port-name)]
+    (if m m
+      (let [m  (open-virtual-port (new midi.input) port-name)
+            hw (.port (aget jack.clients "a2j") port-name)]
+        (set! (aget persist.midi.inputs port-name) m)
+        (a2j.started.then (fn []))
+        m))))

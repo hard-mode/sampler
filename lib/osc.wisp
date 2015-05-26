@@ -18,4 +18,7 @@
         :host host
         :port port })))
 
+(defn server [port]
+  (osc.Server. port "0.0.0.0"))
+
 (set! client.next-port 10000)

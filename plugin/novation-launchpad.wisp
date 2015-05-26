@@ -77,5 +77,17 @@
 
 ; find controller and establish connection
 
-(defn connect []
-  { :on (fn []) })
+(def ^:private event2 (require "eventemitter2"))
+
+(defn connect
+  [hw-name grid-mode]
+  (let [input  (midi.connect-to-input  hw-name)
+        output (midi.connect-to-output hw-name)
+        events (event2.EventEmitter2.)]
+
+    { :events    events
+
+      :grid-mode grid-mode
+
+      :box       (fn []) 
+      :keyboard  (fn []) }))

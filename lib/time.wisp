@@ -1,6 +1,11 @@
 (ns time (:require [wisp.runtime :refer [and]]))
 
 (def ^:private NanoTimer (require "nanotimer"))
+(def ^:private jack      (require "./jack.wisp"))
+(def ^:private osc       (require "./osc.wisp"))
+
+(def jack-osc "/home/epimetheus/code/hardmode/rju/jack-osc")
+(def klick "klick")
 
 ;(defmacro each [t & body]
  ;`(setInterval (fn [] ~@body) ~t))
@@ -27,5 +32,12 @@
       (set! (aget state n) new-timer)
       new-timer)))
 
-(defn transport []
-  { :each (fn [interval callback]) })
+(defn transport [tempo meter]
+  (let [osc-server    (osc.server 3456)
+        osc-client    (osc.client)
+        osc-process   (jack.spawn "jack-osc" jack-osc "-p" osc-client.port)
+        klick-client  (jack.client "klick")
+        klick-process (jack.spawn "klick" klick "-T" meter tempo)]
+  (osc-client.send "/receive_at" 1 "3456" "localhost")
+  (osc-server.on "message" (fn [& args] (console.log "OSC" args)))
+  { :each each }))
