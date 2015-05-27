@@ -49,6 +49,9 @@
     web    (require "./lib/web.wisp")
     path   (require "path")
 
+    ; crutch
+    sequencer { "kicks" kicks "snares" snares "hihats" hihats }
+
     server (web.server 2097
       (web.page "/" (path.resolve "./web-ui.js"))
       (web.endpoint "/state" (fn [req resp]
@@ -59,8 +62,14 @@
               :hihats hihats }))
         (if (= "POST" req.method)
           (let [data ""]
-            (req.on "data" (fn [d] (set! data (+ data d ))))i
-            (req.on "end"  (fn []  (log "---> POST" data)))))))
+            (req.on "data" (fn [d]
+              (set! data (+ data d ))))
+            (req.on "end"  (fn []
+              (let [data (JSON.parse data)
+                    inst (aget sequencer (aget data 0))]
+                (set! (aget inst (aget data 1))
+                      (if (aget data 2) 1 0)))))
+            (web.send-json req resp "OK")))))
       (web.endpoint "/help" (fn [req resp]
         (log req)
         (web.send-html req resp "joker"))))

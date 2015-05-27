@@ -63,7 +63,7 @@
       ($ "meta" { :charset "utf-8" })
       ($ "title" "Boepripasi") ])
     ($ "body" [
-      ($ "script" { :src  "/script" } context) ])]))
+      ($ "script" context) ])]))
 
 (defn page [route script]
   (log script)
