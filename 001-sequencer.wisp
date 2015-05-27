@@ -33,9 +33,9 @@
     tempo  220
     index  0
 
-    kicks  [1 0 1 0 1 0 1 0]
-    snares [0 0 0 0 1 0 0 0]
-    hihats [1 1 1 1 1 1 1 1]
+    kicks  [0 0 0 0 0 0 0 0]
+    snares [0 0 0 0 0 0 0 0]
+    hihats [0 0 0 0 0 0 0 0]
 
     util   (require "./lib/util.wisp")
     step   (fn [] (if (aget kicks  index)  (kick.play))
@@ -61,15 +61,11 @@
               :snares snares
               :hihats hihats }))
         (if (= "POST" req.method)
-          (let [data ""]
-            (req.on "data" (fn [d]
-              (set! data (+ data d ))))
-            (req.on "end"  (fn []
-              (let [data (JSON.parse data)
-                    inst (aget sequencer (aget data 0))]
-                (set! (aget inst (aget data 1))
-                      (if (aget data 2) 1 0)))))
-            (web.send-json req resp "OK")))))
+          (web.receive-post req resp (fn [data]
+            (let [data (JSON.parse data)
+                  inst (aget sequencer (aget data 0))]
+              (set! (aget inst (aget data 1))
+                    (if (aget data 2) 1 0))))))))
       (web.endpoint "/help" (fn [req resp]
         (log req)
         (web.send-html req resp "joker"))))

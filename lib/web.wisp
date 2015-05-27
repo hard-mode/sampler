@@ -33,6 +33,12 @@
 
     state))
 
+(defn receive-post [req resp callback]
+  (let [data ""]
+    (req.on "data" (fn [d] (set! data (+ data d ))))
+    (req.on "end"  (fn []  (callback data))
+    (send-json req resp "OK"))))
+
 (defn respond-404 [req resp]
   (send-html req resp "404"))
 
