@@ -47,11 +47,13 @@
     ;; web ui
     ;;
     web       (require "./lib/web.wisp")
-    send-html (require "send-data/html")
 
     server (web.server 2097
       (web.page "/" (fn [req resp]
-        (send-html req resp "foo"))))
+        (web.send-html req resp "foo")))
+      (web.page "/help" (fn [req resp]
+        (log req)
+        (web.send-html req resp "joker"))))
 
   ]
 
