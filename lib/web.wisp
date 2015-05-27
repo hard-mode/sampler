@@ -7,13 +7,12 @@
 (set! persist.web (or persist.web {}))
 
 (def send-html (require "send-data/html"))
+(def send-json (require "send-data/json"))
 
 (defn server [port & pages]
   (let [state (or (aget persist.web port)
                   { :server (http.create-server)
                     :routes [] })]
-
-    (set! (aget persist.web port) state)
 
     (set! state.routes (pages.reduce
       (fn [routes next-page i]
@@ -21,8 +20,12 @@
         (routes.push next-page)
         routes) []))
     (log "Registered routes:" state.routes)
-    (state.server.on "request" (fn [req resp]
-      ((match-route state.routes req) req resp)))
+
+    (if (aget persist.web port) nil
+      (state.server.on "request" (fn [req resp]
+        ((match-route state.routes req) req resp))))
+
+    (set! (aget persist.web port) state)
 
     (state.server.listen port)
     (log "Listening on" port)

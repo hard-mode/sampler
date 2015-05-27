@@ -33,9 +33,9 @@
     tempo  220
     index  0
 
-    kicks  [0 0 0 0 0 0 0 0]
-    snares [0 0 0 0 0 0 0 0]
-    hihats [0 0 0 0 0 0 0 0]
+    kicks  [1 1 0 0 1 0 1 0]
+    snares [0 0 1 1 0 0 1 1]
+    hihats [1 1 1 1 1 1 1 1]
 
     util   (require "./lib/util.wisp")
     step   (fn [] (if (aget kicks  index)  (kick.play))
@@ -49,9 +49,12 @@
     web    (require "./lib/web.wisp")
 
     server (web.server 2097
-      (web.endpoint "/" (fn [req resp]
-        (web.send-html req resp "foo")))
-      (web.page "/lol")
+      (web.page "/")
+      (web.endpoint "/state" (fn [req resp]
+        (web.send-json req resp
+          { :kicks  kicks
+            :snares snares
+            :hihats hihats })))
       (web.endpoint "/help" (fn [req resp]
         (log req)
         (web.send-html req resp "joker"))))
