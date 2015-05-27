@@ -1,5 +1,6 @@
 (ns web (:require [wisp.runtime :refer [=]]))
 
+(def ^:private fs   (require "fs"))
 (def ^:private http (require "http"))
 (def ^:private url  (require "url"))
 (def ^:private $    (require "hyperscript"))
@@ -62,11 +63,14 @@
       ($ "meta" { :charset "utf-8" })
       ($ "title" "Boepripasi") ])
     ($ "body" [
-      ($ "script" { :src "/script" })
-      ($ "script" { :type "application/wisp" })])]))
+      ($ "script" { :src  "/script" } context) ])]))
 
-(defn page [route & elements]
-  (let [handler (respond-template.bind nil page-template nil)]
+(defn page [route script]
+  (log script)
+  (let [handler (fn [req resp]
+          (fs.read-file script { :encoding "utf8" } (fn [err data]
+            (if err (throw err))
+            (respond-template page-template data req resp))))]
     (endpoint route handler)))
 
 ;(defn page [& elements]

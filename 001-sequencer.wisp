@@ -33,8 +33,8 @@
     tempo  220
     index  0
 
-    kicks  [1 1 0 0 1 0 1 0]
-    snares [0 0 1 1 0 0 1 1]
+    kicks  [1 0 1 0 1 0 1 0]
+    snares [0 0 0 0 1 0 0 0]
     hihats [1 1 1 1 1 1 1 1]
 
     util   (require "./lib/util.wisp")
@@ -47,14 +47,20 @@
     ;; web ui
     ;;
     web    (require "./lib/web.wisp")
+    path   (require "path")
 
     server (web.server 2097
-      (web.page "/")
+      (web.page "/" (path.resolve "./web-ui.js"))
       (web.endpoint "/state" (fn [req resp]
-        (web.send-json req resp
-          { :kicks  kicks
-            :snares snares
-            :hihats hihats })))
+        (if (= "GET" req.method)
+          (web.send-json req resp
+            { :kicks  kicks
+              :snares snares
+              :hihats hihats }))
+        (if (= "POST" req.method)
+          (let [data ""]
+            (req.on "data" (fn [d] (set! data (+ data d ))))i
+            (req.on "end"  (fn []  (log "---> POST" data)))))))
       (web.endpoint "/help" (fn [req resp]
         (log req)
         (web.send-html req resp "joker"))))
