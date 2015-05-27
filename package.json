@@ -5,6 +5,7 @@
     "chokidar": "^1.0.1",
     "dbus-native": "^0.2.0",
     "eventemitter2": "^0.4.14",
+    "hyperscript": "^1.4.6",
     "inquirer": "^0.8.2",
     "intersperse": "^1.0.0",
     "midi": "^0.9.3",

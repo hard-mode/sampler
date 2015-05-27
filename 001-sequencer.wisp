@@ -46,12 +46,13 @@
     ;;
     ;; web ui
     ;;
-    web       (require "./lib/web.wisp")
+    web    (require "./lib/web.wisp")
 
     server (web.server 2097
-      (web.page "/" (fn [req resp]
+      (web.endpoint "/" (fn [req resp]
         (web.send-html req resp "foo")))
-      (web.page "/help" (fn [req resp]
+      (web.page "/lol")
+      (web.endpoint "/help" (fn [req resp]
         (log req)
         (web.send-html req resp "joker"))))
 

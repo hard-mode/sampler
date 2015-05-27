@@ -2,6 +2,7 @@
 
 (def ^:private http (require "http"))
 (def ^:private url  (require "url"))
+(def ^:private $    (require "hyperscript"))
 
 (set! persist.web (or persist.web {}))
 
@@ -28,27 +29,42 @@
 
     state))
 
-(defn route-404 [req resp]
+(defn respond-404 [req resp]
   (send-html req resp "404"))
+
+(defn respond-template [template context req resp]
+  (send-html req resp (.-outerHTML (template context))))
 
 (defn match-route [routes req]
   (let [pathname (.-pathname (url.parse req.url))]
     (loop [head (aget routes 0)
            tail (routes.slice 1)]
-      (log "trying route" head)
       (if (= pathname head.route)
         head.handler
         (if (= 0 tail.length)
-          route-404
+          respond-404
           (recur (aget tail 0) (tail.slice 1)))))))
 
 (defn add-page [routes p]
   (set! (aget routes p.route) p)
   routes)
 
-(defn page [route handler]
+(defn endpoint [route handler]
   { :route   route
     :handler handler })
+
+(defn page-template [context]
+  ($ "html" [
+    ($ "head" [
+      ($ "meta" { :charset "utf-8" })
+      ($ "title" "Boepripasi") ])
+    ($ "body" [
+      ($ "script" { :src "/script" })
+      ($ "script" { :type "application/wisp" })])]))
+
+(defn page [route & elements]
+  (let [handler (respond-template.bind nil page-template nil)]
+    (endpoint route handler)))
 
 ;(defn page [& elements]
   ;(fn [state]))
