@@ -1,0 +1,2 @@
+#!/bin/sh
+cat $1|wisp|cat -n|grep --color=always -A$3 -B$3 -E "^ +$2"
