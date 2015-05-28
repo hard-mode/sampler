@@ -59,24 +59,30 @@
             (callback port-number)
             (recur (+ port-number 1))))))))
 
-(defn open-virtual-port [m port-name]
-  (m.open-virtual-port port-name)
-  m)
-
 (defn connect-to-input [port-name]
   (let [m (aget persist.midi.outputs port-name)]
     (if m m
-      (let [m  (open-virtual-port (new midi.output) port-name)
-            hw (.port (aget jack.clients "a2j") port-name)]
+      (let [m (new midi.output)]
         (set! (aget persist.midi.outputs port-name) m)
-        (a2j.started.then (fn []))
+        (jack.after-session-start.then (fn []
+          (log "FOO" a2j)
+          (a2j.started.then (fn []
+            (log a2j)
+            ;(log "BAR" jack.state.clients)
+            ))
+          (m.open-virtual-port port-name)))
         m))))
+
+            ;(open-virtual-port (new midi.input) port-name)
+            ;hw (.port (aget jack.clients "a2j") port-name)
+            ;(open-virtual-port (new midi.output) port-name)
+            ;hw (.port (aget jack.clients "a2j") port-name)
 
 (defn connect-to-output [port-name]
   (let [m (aget persist.midi.inputs port-name)]
     (if m m
-      (let [m  (open-virtual-port (new midi.input) port-name)
-            hw (.port (aget jack.clients "a2j") port-name)]
+      (let [m (new midi.input)]
         (set! (aget persist.midi.inputs port-name) m)
-        (a2j.started.then (fn []))
+        (jack.after-session-start.then (fn []
+          (m.open-virtual-port port-name)))
         m))))

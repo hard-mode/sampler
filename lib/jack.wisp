@@ -19,10 +19,7 @@
     :connections {} }))
 
 ; shorthands
-(def state       persist.jack)
-(def events      persist.jack.events)
-(def clients     persist.jack.clients)
-(def connections persist.jack.connections)
+(def state persist.jack)
 
 ; parsers
 (defn parse-ports [data]
@@ -54,9 +51,9 @@
 (defn parse-connections [data]
   (let [connections {}]
     (data.map (fn [connection]
-      (let [out-client (aget clients          (aget connection 1))
+      (let [out-client (aget state.clients    (aget connection 1))
             out-port   (aget out-client.ports (aget connection 3))
-            in-client  (aget clients          (aget connection 5))
+            in-client  (aget state.clients    (aget connection 5))
             in-port    (aget in-client.ports  (aget connection 7))]
         (set! (aget connections (aget connection 8)
           { :output out-port
@@ -65,37 +62,37 @@
 
 ; state updater
 (defn update [cb]
-  (persist.jack.patchbay.GetGraph "0" (fn [err graph client-list connection-list]
+  (state.patchbay.GetGraph "0" (fn [err graph client-list connection-list]
     (if err (throw err))
-    (set! clients     (parse-clients     client-list))
-    (set! connections (parse-connections connection-list))
+    (set! state.clients     (parse-clients     client-list))
+    (set! state.connections (parse-connections connection-list))
     (if cb (cb)))))
 
 ; event handlers
 (defn bind []
-  (let [patchbay persist.jack.patchbay]
+  (let [patchbay state.patchbay]
     (patchbay.on
       "ClientAppeared"
       (fn [& args] (let [client (aget args 2)]
         (log (str "client appeared:    " client))
-        (update (fn [] (events.emit "client-online" client))))))
+        (update (fn [] (state.events.emit "client-online" client))))))
     (patchbay.on
       "ClientDisappeared"
       (fn [& args] (let [client (aget args 2)]
         (log (str "client disappeared: " client))
-        (update (fn [] (events.emit "client-offline" client))))))
+        (update (fn [] (state.events.emit "client-offline" client))))))
     (patchbay.on
       "PortAppeared"
       (fn [& args] (let [client (aget args 2)
                          port   (aget args 4)]
         (log (str "port appeared:      " client ":" port))
-        (update (fn [] (events.emit "port-online" client port))))))
+        (update (fn [] (state.events.emit "port-online" client port))))))
     (patchbay.on
       "PortDisappeared"
       (fn [& args] (let [client (aget args 2)
                          port   (aget args 4)]
         (log (str "port disappeared:   " client ":" port))
-        (update (fn [] (events.emit "port-offline" client port))))))
+        (update (fn [] (state.events.emit "port-offline" client port))))))
     (patchbay.on
       "PortsConnected"
       (fn [& args] (let [out-client (aget args 2)
@@ -104,7 +101,7 @@
                          in-port    (aget args 8)]
         (log (str "ports connected:    " out-client ":" out-port
                                   " -> "  in-client ":"  in-port))
-        (update (fn [] (events.emit "connected" out-client out-port
+        (update (fn [] (state.events.emit "connected" out-client out-port
                                                 in-client  in-port))))))
     (patchbay.on
       "PortsDisconnected"
@@ -114,13 +111,13 @@
                          in-port    (aget args 8)]
         (log (str "ports disconnected: " out-client ":" out-port
                                  " >< "  in-client ":"  in-port))
-        (update (fn [] (events.emit "disconnected" out-client out-port
+        (update (fn [] (state.events.emit "disconnected" out-client out-port
                                                    in-client  in-port))))))
     (patchbay.on "GraphChanged"
       (fn []))
         ;(log (str "graph changed"))))
     (set! started true)
-    (events.emit "started")))
+    (state.events.emit "started")))
 
 ; initializer
 (defn init []
@@ -131,24 +128,24 @@
 		(dbus-service.get-interface dbus-path "org.jackaudio.JackControl"
       (fn [err control] (if err (throw err))
         (log "connected to jack control")
-        (set! persist.jack.control control)
+        (set! state.control control)
         (control.StartServer (fn []
           (log "jack server started")
 			    (dbus-service.get-interface dbus-path "org.jackaudio.JackPatchbay"
             (fn [err patchbay] (if err (throw err))
               (log "connected to jack patchbay")
-              (set! persist.jack.patchbay patchbay)
+              (set! state.patchbay patchbay)
               (update bind)))))))))
 
 ; autostart
-(if (not persist.jack.started) (init))
+(if (not state.started) (init))
 
 ; execute as soon as the session has started
 (def after-session-start
   (let [deferred (Q.defer)]
-    (if persist.jack.started
+    (if state.started
       (deferred.resolve)
-      (events.on "started" deferred.resolve))
+      (state.events.on "started" deferred.resolve))
     deferred.promise))
 
 ; spawn a child process once the session has started
@@ -167,24 +164,24 @@
   (log "connecting:        "
     (str output-c ":" output-p)
     (str input-c  ":" input-p))
-  (persist.jack.patchbay.ConnectPortsByName
+  (state.patchbay.ConnectPortsByName
     output-c output-p input-c input-p)
   (persist.cleanup.push (fn []
     (log "Disconnecting" output-c output-p input-c input-p)
-    (persist.jack.patchbay.DisconnectPortsByName
+    (state.patchbay.DisconnectPortsByName
       output-c output-p input-c input-p))))
 
 (defn connect-by-id [output-c output-p input-c input-p]
-  (persist.jack.patchbay.ConnectPortsByID output-c output-p input-c input-p))
+  (state.patchbay.ConnectPortsByID output-c output-p input-c input-p))
 
 (defn find-client [client-name]
-  (.indexOf (Object.keys clients) client-name))
+  (.indexOf (Object.keys state.clients) client-name))
 
 (defn client-found [client-name]
   (not (= -1 (find-client client-name))))
 
 (defn find-port [client-name port-name]
-  (let [client  (or (aget clients client-name)
+  (let [client  (or (aget state.clients client-name)
                     { :ports {} })
         ports   (Object.keys client.ports)]
     (.indexOf ports port-name)))
@@ -195,12 +192,12 @@
 (defn port [client-name port-name]
   (let [deferred  (Q.defer)
 
-        state     { :name    port-name  
-                    :client  client-name
-                    :started deferred.promise
-                    :online  false }
+        port-state { :name    port-name  
+                     :client  client-name
+                     :started deferred.promise
+                     :online  false }
 
-        start     (fn [] (set! state.online true)
+        start     (fn [] (set! port-state.online true)
                          (deferred.resolve))
 
         starter   nil ]
@@ -208,25 +205,25 @@
     (set! starter (fn [c p]
       (if (and (= c client-name) (= p port-name)) (do
         (start)
-        (events.off "port-online" starter)))))
+        (state.events.off "port-online" starter)))))
 
     (after-session-start.then (fn []
       (if (port-found client-name port-name)
         (start)
-        (events.on "port-online" starter))))
+        (state.events.on "port-online" starter))))
     
-    state))
+    port-state))
 
 (defn client [client-name]
   (let [deferred  (Q.defer)
 
-        state     { :name     client-name
-                    :online   false
-                    :started  deferred.promise
-                    :events   (event2.EventEmitter2.)
-                    :port     (port.bind null client-name) }
+        client-state   { :name     client-name
+                         :online   false
+                         :started  deferred.promise
+                         :events   (event2.EventEmitter2.)
+                         :port     (port.bind null client-name) }
 
-        start     (fn [] (set! state.online true)
+        start     (fn [] (set! client-state.online true)
                          (deferred.resolve))
 
         starter   nil]
@@ -234,14 +231,14 @@
     (set! starter (fn [c]
       (if (= c client-name) (do
         (start)
-        (events.off "client-online" starter)))))
+        (state.events.off "client-online" starter)))))
 
     (after-session-start.then (fn []
       (if (client-found client-name)
         (start)
-        (events.on "client-online" starter))))
+        (state.events.on "client-online" starter))))
 
-    state))
+    client-state))
 
 (def system (client "system"))
 

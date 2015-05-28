@@ -12,15 +12,13 @@
 
 (session
 
-
     ;; transport ----------------------------------------------------
 
     tempo  140
     quaver (str (* 500 (/ 60 tempo)) "m")
     time   (.transport (require "./lib/time.wisp") tempo "4/4")
   
-    _ (time.each "step" quaver (fn [] (log "tick")))
-
+    ;_ (time.each "step" quaver (fn [] (log "tick")))
 
     ;;; available controllers ----------------------------------------
 
@@ -28,7 +26,7 @@
     lpd-kbd-1 (launchpad.keyboard :E)
     lpd-kbd-2 (launchpad.keyboard :G)
 
-    _ (time.each "lpd-refresh" quaver (fn [] (launchpad.emit "refresh")))
+    _ (time.each "lpd-refresh" quaver (fn [] (launchpad.events.emit "refresh")))
 
 )
 
@@ -46,7 +44,6 @@
     ;_ (launchpad.on "press" (fn [db msg d1 d2]
         ;(match [(= msg 176) (> d1 103) (< d1 112)  (= d2 127)]
           ;(set! jumpto (- d1 104)))))
-
 
     ;;; drums --------------------------------------------------------
 
@@ -122,7 +119,6 @@
           ;(launchpad.send [144 (+ 16 i) (if (aget snares i) 127 0)])
           ;(launchpad.send [144 (+ 32 i) (if (aget hihats i) 127 0)])))))
 
-
     ;;; synths -------------------------------------------------------
 
     ;midi  (require "./lib/midi.wisp")
@@ -153,7 +149,6 @@
     ;_ (launchpad.on "refresh" (fn [] launchpad
         ;(lpd-kbd-1.map (fn [i] (launchpad.send [144 i 60])))
         ;(lpd-kbd-2.map (fn [i] (launchpad.send [144 i 60])))))
-
 
     ;;; looper -------------------------------------------------------
 

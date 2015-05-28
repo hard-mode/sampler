@@ -33,42 +33,15 @@
     tempo  220
     index  0
 
-    kicks  [0 0 0 0 0 0 0 0]
-    snares [0 0 0 0 0 0 0 0]
-    hihats [0 0 0 0 0 0 0 0]
+    kicks  [1 0 0 0 1 0 0 0]
+    snares [0 0 0 1 0 0 0 1]
+    hihats [0 1 1 0 0 1 1 0]
 
     util   (require "./lib/util.wisp")
     step   (fn [] (if (aget kicks  index)  (kick.play))
                   (if (aget snares index) (snare.play))
                   (if (aget hihats index) (hihat.play))
                   (set! index (if (< index 7) (+ index 1) 0)))
-
-    ;;
-    ;; web ui
-    ;;
-    web    (require "./lib/web.wisp")
-    path   (require "path")
-
-    ; crutch
-    sequencer { "kicks" kicks "snares" snares "hihats" hihats }
-
-    server (web.server 2097
-      (web.page "/" (path.resolve "./web-ui.js"))
-      (web.endpoint "/state" (fn [req resp]
-        (if (= "GET" req.method)
-          (web.send-json req resp
-            { :kicks  kicks
-              :snares snares
-              :hihats hihats }))
-        (if (= "POST" req.method)
-          (web.receive-post req resp (fn [data]
-            (let [data (JSON.parse data)
-                  inst (aget sequencer (aget data 0))]
-              (set! (aget inst (aget data 1))
-                    (if (aget data 2) 1 0))))))))
-      (web.endpoint "/help" (fn [req resp]
-        (log req)
-        (web.send-html req resp "joker"))))
 
   ]
 

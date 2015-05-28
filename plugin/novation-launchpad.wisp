@@ -80,14 +80,16 @@
 (def ^:private event2 (require "eventemitter2"))
 
 (defn connect
-  [hw-name grid-mode]
-  (let [input  (midi.connect-to-input  hw-name)
-        output (midi.connect-to-output hw-name)
-        events (event2.EventEmitter2.)]
+  ([]          (connect "Launchpad" :xy))
+  ([grid-mode] (connect "Launchpad" grid-mode))
+  ([hw-name grid-mode]
+    (let [input  (midi.connect-to-input  hw-name)
+          output (midi.connect-to-output hw-name)
+          events (event2.EventEmitter2.)]
 
-    { :events    events
+      { :events    events
 
-      :grid-mode grid-mode
+        :grid-mode grid-mode
 
-      :box       (fn []) 
-      :keyboard  (fn []) }))
+        :box       (fn []) 
+        :keyboard  (fn []) })))
