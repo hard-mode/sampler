@@ -102,7 +102,7 @@
         (log (str "ports connected:    " out-client ":" out-port
                                   " -> "  in-client ":"  in-port))
         (update (fn [] (state.events.emit "connected" out-client out-port
-                                                in-client  in-port))))))
+                                                      in-client  in-port))))))
     (patchbay.on
       "PortsDisconnected"
       (fn [& args] (let [out-client (aget args 2)
@@ -112,7 +112,7 @@
         (log (str "ports disconnected: " out-client ":" out-port
                                  " >< "  in-client ":"  in-port))
         (update (fn [] (state.events.emit "disconnected" out-client out-port
-                                                   in-client  in-port))))))
+                                                         in-client  in-port))))))
     (patchbay.on "GraphChanged"
       (fn []))
         ;(log (str "graph changed"))))
@@ -202,15 +202,15 @@
 
         starter   nil ]
 
-    (set! starter (fn [c p]
-      (if (and (= c client-name) (= p port-name)) (do
-        (start)
-        (state.events.off "port-online" starter)))))
-
     (after-session-start.then (fn []
       (if (port-found client-name port-name)
         (start)
-        (state.events.on "port-online" starter))))
+        (do
+          (set! starter (fn [c p]
+            (if (and (= c client-name) (= p port-name)) (do
+              (start)
+              (state.events.off "port-online" starter)))))
+          (state.events.on "port-online" starter))))
     
     port-state))
 
@@ -228,15 +228,15 @@
 
         starter   nil]
 
-    (set! starter (fn [c]
-      (if (= c client-name) (do
-        (start)
-        (state.events.off "client-online" starter)))))
-
     (after-session-start.then (fn []
       (if (client-found client-name)
         (start)
-        (state.events.on "client-online" starter))))
+        (do
+          (set! starter (fn [c]
+            (if (= c client-name) (do
+              (start)
+              (state.events.off "client-online" starter)))))
+          (state.events.on "client-online" starter)))))
 
     client-state))
 
