@@ -23,8 +23,8 @@
     ;;; available controllers ----------------------------------------
 
     launchpad (.connect (require "./plugin/novation-launchpad.wisp") :xy)
-    lpd-kbd-1 (launchpad.keyboard :E)
-    lpd-kbd-2 (launchpad.keyboard :G)
+    lpd-kbd-1 (launchpad.keyboard 4)
+    lpd-kbd-2 (launchpad.keyboard 6)
 
     _ (time.each "lpd-refresh" quaver (fn [] (launchpad.events.emit "refresh")))
 
