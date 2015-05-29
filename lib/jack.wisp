@@ -210,7 +210,7 @@
             (if (and (= c client-name) (= p port-name)) (do
               (start)
               (state.events.off "port-online" starter)))))
-          (state.events.on "port-online" starter))))
+          (state.events.on "port-online" starter)))))
     
     port-state))
 

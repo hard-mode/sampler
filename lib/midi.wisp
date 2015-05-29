@@ -1,4 +1,4 @@
-(ns midi (:require [wisp.runtime :refer [= and not]]))
+(ns midi (:require [wisp.runtime :refer [= and not str]]))
 
 (def ^:private jack (require "./jack.wisp"))
 (def ^:private midi (require "midi"))
@@ -49,44 +49,50 @@
       :out  o
       :send (.bind o.send-message o) }))
 
+;;
+;; version 2
+;; a.k.a. needlessly hairy code
+;;
 
-; version 2
-
-
+; TODO make these port-finders promises
+; also make them useful
 (defn- find-a2j-port [port-name-regex]
   (let [regex (RegExp. port-name-regex)
         ports (.-ports (aget jack.state.clients a2j.name))
-        ports (.filter (Object.keys ports) regex.test)
+        ports (.filter (Object.keys ports) (fn [p] (regex.test p)))
         port  (aget ports 0)]
     port))
+
+
+(defn- find-rtmidi-port [client-name-regex port-name-regex]
+  (let [client-regex  (RegExp. client-name-regex)
+        client-list   (.filter (Object.keys jack.state.clients)
+                        (fn [c] (client-regex.test c)))
+        port-regex    (RegExp. port-name-regex)]
+    (client-list.map (fn [client]
+      (let [client-ports (.-ports (aget jack.state.clients client))]
+        (log "->" client-ports)))))
+  nil)
 
 
 (defn expect-hardware-port [port-name-regex]
   (let [deferred (Q.defer)
-        found    (fn [port-name] (deferred.resolve port-name))
+        found    (fn [port-name] (deferred.resolve [a2j.name port-name]))
         finder   nil]
     (.then (Q.all [jack.after-session-start a2j.started]) (fn []
-      (if (find-a2j-port port-name-regex)
-        (found port-name)
-        (do (set! finder (fn [c p]
-              (if (and (= a2j.name c) (.test (RegExp. port-name-regex) p))
-                (do (found p) (jack.state.events.off "port-online" finder)))))
-            (jack.state.events.on "port-online" finder)))))
+      (let [hw-port (find-a2j-port port-name-regex)]
+        (if hw-port
+          (found hw-port)
+          (do (set! finder (fn [c p]
+                (if (and (= a2j.name c) (.test (RegExp. port-name-regex) p))
+                  (do (found p) (jack.state.events.off "port-online" finder)))))
+              (jack.state.events.on "port-online" finder))))))
     deferred.promise))
-
-
-(defn- find-rtmidi-port [client-name-regex port-name-regex]
-  (let [c-regex (RegExp. client-name-regex)
-        p-regex (RegExp. port-name-regex)
-        ports (.-ports (aget jack.state.clients a2j.name))
-        ports (.filter (Object.keys ports) regex.test)
-        port  (aget ports 0)]
-    port))
 
 
 (defn expect-virtual-port [client-name-regex port-name-regex]
   (let [deferred (Q.defer)
-        found    (fn [c-name p-name] (deferred.resolve c-name p-name))
+        found    (fn [c-name p-name] (deferred.resolve [c-name p-name]))
         finder   nil]
     (jack.after-session-start.then (fn []
       (let [rtmidi-port (find-rtmidi-port client-name-regex port-name-regex)]
@@ -96,30 +102,43 @@
                 (if (and (.test (RegExp. client-name-regex) c)
                          (.test (RegExp. port-name-regex)   p))
                   (do (found c p) (jack.state.events.off "port-online" finder)))))
-              (jack.state.events.on "port-online" finder)))))
-    deferred.promise)))
+              (jack.state.events.on "port-online" finder))))))
+    deferred.promise))
 
 
 (defn connect-to-input [port-name]
-  (let [m (aget persist.midi.outputs port-name)]
-    (or m (let [m (new midi.output)]
-      (set! (aget persist.midi.outputs port-name) m)
+  (let [m (aget persist.midi.inputs port-name)]
+    (or m (let [m       (new midi.input)
+                vpcname "^RtMidi Input Client"
+                vppname (str "^" port-name)
+                hppname (str "^" port-name ".+(capture)")]
+      (set! (aget persist.midi.inputs port-name) m)
       (jack.after-session-start.then (fn []
         (m.open-virtual-port port-name)
-        (a2j.started.then (fn []
-          (let [ports (.-ports (aget jack.state.clients a2j.name))
-                ports (.filter (Object.keys ports)
-                  (fn [p] (and (= 0 (p.index-of port-name))
-                               (not (= -1 (p.index-of "(capture)"))))))
-                port  (aget ports 0)]
-            (log port))))))
+        (.then (Q.all [ (expect-hardware-port hppname)
+                        (expect-virtual-port vpcname vppname) ])
+          (fn [ports] (let [out-port (aget ports 0)
+                            in-port  (aget ports 1)]
+            (jack.connect-by-name
+              (aget out-port 0) (aget out-port 1)
+              (aget in-port  0) (aget in-port  1)))))))
       m))))
 
 
 (defn connect-to-output [port-name]
-  (let [m (aget persist.midi.inputs port-name)]
-    (or m (let [m (new midi.input)]
-      (set! (aget persist.midi.inputs port-name) m)
+  (let [m (aget persist.midi.outputs port-name)]
+    (or m (let [m       (new midi.output)
+                vpcname "^RtMidi Output Client"
+                vppname (str "^" port-name)
+                hppname (str "^" port-name ".+(playback)")]
+      (set! (aget persist.midi.outputs port-name) m)
       (jack.after-session-start.then (fn []
-        (m.open-virtual-port port-name)))
+        (m.open-virtual-port port-name)
+        (.then (Q.all [ (expect-virtual-port vpcname vppname)
+                        (expect-hardware-port hppname) ])
+          (fn [ports] (let [out-port (aget ports 0)
+                            in-port  (aget ports 1)]
+            (jack.connect-by-name
+              (aget out-port 0) (aget out-port 1)
+              (aget in-port  0) (aget in-port  1)))))))
       m))))

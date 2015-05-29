@@ -87,6 +87,9 @@
           output (midi.connect-to-output hw-name)
           events (event2.EventEmitter2.)]
 
+      (events.on "refresh" (fn []
+        (output.send-message [144 1 70])))
+
       { :events    events
 
         :grid-mode grid-mode

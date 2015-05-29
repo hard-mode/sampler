@@ -1,0 +1,1 @@
+pkill -9 a2j; pkill -9 sample; pkill -9 yoshimi; pkill -9 node; pkill -9 calf; pkill -9 sooper; pkill -9 slgui; pkill -9 jack

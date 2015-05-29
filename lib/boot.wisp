@@ -3,6 +3,7 @@
 ;;
 ;; bootstrapper
 ;;
+
 (set! module.exports (fn [session-module]
   (if (= session-module require.main)
     (let [log       console.log
