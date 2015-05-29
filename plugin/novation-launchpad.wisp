@@ -108,7 +108,7 @@
         (g (+ 1 row) 6) ; B
         (g (+ 1 row) 7) ] ; C
       widget
-      { :blit (fn [] (pad-map.map (fn [n] (o.send-message [144 n color])))) }]
+      { :refresh (fn [] (pad-map.map (fn [n] (o.send-message [144 n color])))) }]
     widget)))
 
 (defn connect
@@ -123,9 +123,11 @@
           widgets  []]
 
       (events.on "refresh" (fn []
-        (.map widgets (fn [widget] (widget.blit)))))
+        (.map widgets (fn [widget] (widget.refresh)))))
 
       { :events    events
+
+        :refresh   (fn [] (events.emit "refresh"))
 
         :grid-type grid-type
 

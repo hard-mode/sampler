@@ -13,37 +13,32 @@
 (session
 
     ;; transport ----------------------------------------------------
-
-    tempo  140
+    tempo 140
     quaver (str (* 500 (/ 60 tempo)) "m")
-    time   (.transport (require "./lib/time.wisp") tempo "4/4")
-  
+    time (.transport (require "./lib/time.wisp") tempo "4/4")
     ;_ (time.each "step" quaver (fn [] (log "tick")))
 
     ;;; available controllers ----------------------------------------
-
     launchpad (.connect (require "./plugin/novation-launchpad.wisp") :xy)
-    lpd-kbd-1 (launchpad.keyboard 4)
-    lpd-kbd-2 (launchpad.keyboard 6)
+    _ (time.each "lpd-refresh" quaver (fn [] (launchpad.refresh)))
 
-    _ (time.each "lpd-refresh" quaver (fn [] (launchpad.events.emit "refresh")))
+    ;;; synth --------------------------------------------------------
+    lpd-kbd-1 (launchpad.keyboard 4 125)
+    lpd-kbd-2 (launchpad.keyboard 6 127)
 
 )
 
-
     ;;; beat jumper --------------------------------------------------
-
-    ;index   0
+    ;index 0
     ;jumpto -1
-
-    ;_ (time.each :8th (fn []
-        ;(if (> jumpto -1)
-          ;(do (set! index jumpto) (set! jumpto -1))
-          ;(set! index (if (< index 7) (+ index 1) 0)))))
-
+    ;lpd-jumper (launchpad.box)
+    ;_ (time.each quaver (fn [] (if (> jumpto -1)
+        ;(do (set! index jumpto) (set! jumpto -1))
+        ;(set! index (if (< index 7) (+ index 1) 0)))))
     ;_ (launchpad.on "press" (fn [db msg d1 d2]
         ;(match [(= msg 176) (> d1 103) (< d1 112)  (= d2 127)]
           ;(set! jumpto (- d1 104)))))
+
 
     ;;; drums --------------------------------------------------------
 

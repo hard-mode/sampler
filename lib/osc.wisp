@@ -5,6 +5,7 @@
 (def ^:private next-port 10000)
 
 (def clients {})
+(def servers {})
 
 (defn client
   ([] (set!   next-port   (+ next-port 1))
@@ -19,6 +20,9 @@
         :port port })))
 
 (defn server [port]
-  (osc.Server. port "0.0.0.0"))
+  (or (aget servers port)
+      (let [s (osc.Server. port "0.0.0.0")]
+        (set! (aget servers port) s)
+        s)))
 
 (set! client.next-port 10000)
