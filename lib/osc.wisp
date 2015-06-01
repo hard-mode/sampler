@@ -1,9 +1,12 @@
 (ns osc (:require [wisp.runtime :refer [str not]]))
 
+(def next-port 10000)
+
+;;
+;; v1
+;;
+
 (def ^:private osc (require "node-osc"))
-
-(def ^:private next-port 10000)
-
 (def clients {})
 (def servers {})
 
@@ -25,4 +28,26 @@
         (set! (aget servers port) s)
         s)))
 
-(set! client.next-port 10000)
+;;
+;; v2
+;;
+
+(def ^:private event2 (require "eventemitter2"))
+(def ^:private osc    (require "osc"))
+
+(def ^:private backends {
+  :socket osc.WebSocketPort
+  :udp    osc.UDPPort
+  :serial osc.SerialPort })
+
+(defn port
+  ([]    (set! next-port        (+ next-port 1))
+         (port :udp "localhost" (- next-port 1)))
+  ([p]   (port :udp "localhost" p))
+  ([h p] (port :udp h p))
+  ([b h p]
+    (let [cfg  { :localAddress  h
+                 :localPort     p }
+          prt  (new (aget backends b) cfg)]
+      (prt.open)
+      prt)))
