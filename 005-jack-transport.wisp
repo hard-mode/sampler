@@ -4,9 +4,6 @@
 
 ;; TODO macro imports
 
-(defmacro match [args & body]
-  `(if (and ~@args) (do ~@body)))
-
 (defmacro session [& body]
   `(defn start [] (let [~@body])))
 
@@ -24,10 +21,11 @@
   nanoktrl2 (.connect (require "./plugin/korg-nanokontrol2.wisp"))
   _ (time.each "lpd-refresh" quaver launchpad.refresh)
   _ (nanoktrl2.events.on "input" (fn [t m1 m2 m3]
-      (let [msg (midi.parse m1 m2 m3)]
-        (if (midi.match { :data1 4 } msg) (log msg)))
-      (if (and (= m1 189) (= m2 42) (= m3 127)) (time.stop))
-      (if (and (= m1 189) (= m2 41) (= m3 127)) (time.play))))
+      (let [msg   (midi.parse m1 m2 m3)
+            match (fn [mask] (midi.match mask msg))]
+        (if (match {:event :control :data2 127}) (cond
+          (match {:data1 42}) (time.stop)
+          (match {:data1 41}) (time.play))))))
 
   ;; synth --------------------------------------------------------
   lpd-kbd-1 (launchpad.keyboard 4 125)
