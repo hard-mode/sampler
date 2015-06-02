@@ -1,8 +1,9 @@
 (ns midi (:require [wisp.runtime :refer [= and not str]]))
 
-(def ^:private jack (require "./jack.wisp"))
-(def ^:private midi (require "midi"))
-(def ^:private Q    (require "q"))
+(def ^:private bitwise (require "./bitwise.js"))
+(def ^:private jack    (require "./jack.wisp"))
+(def ^:private midi    (require "midi"))
+(def ^:private Q       (require "q"))
 
 (def ^:private a2j (jack.client "a2j"))
 (jack.spawn "a2j" "a2jmidid" "-e")
@@ -142,3 +143,19 @@
               (aget out-port 0) (aget out-port 1)
               (aget in-port  0) (aget in-port  1)))))))
       m))))
+
+(def event-types
+  { 128 :note-off
+    144 :note-on
+    160 :key-pressure
+    176 :control
+    192 :program
+    208 :pressure
+    224 :pitch-bend })
+
+(defn parse
+  ([msg] (parse (aget msg 0) (aget msg 1) (aget msg 2)))
+  ([d1 d2 d3]
+    (let [channel (bitwise.and d1 15)
+          event   (aget event-types (bitwise.and d1 240))]
+      {:channel channel :event event :data1 d2 :data2 d3})))

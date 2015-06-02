@@ -19,10 +19,12 @@
   ;_ (time.each "step" quaver (fn [] (log "tick")))
 
   ;; connect to controllers ---------------------------------------
+  midi      (require "./lib/midi.wisp")
   launchpad (.connect (require "./plugin/novation-launchpad.wisp") :xy)
   nanoktrl2 (.connect (require "./plugin/korg-nanokontrol2.wisp"))
   _ (time.each "lpd-refresh" quaver launchpad.refresh)
   _ (nanoktrl2.events.on "input" (fn [t m1 m2 m3]
+      (log (midi.parse m1 m2 m3))
       (if (and (= m1 189) (= m2 42) (= m3 127)) (time.stop))
       (if (and (= m1 189) (= m2 41) (= m3 127)) (time.play))))
 
