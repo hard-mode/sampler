@@ -33,7 +33,7 @@
       (set! (aget state n) new-timer)
       new-timer)))
 
-(defn transport [tempo meter]
+(defn make-transport [tempo meter]
   (let [jack-osc     (jack.spawn "jack-osc" jack-osc "-p" 57130)
         klick        (jack.spawn "klick" klick "-T" meter tempo)
 
@@ -60,7 +60,22 @@
       (= msg.address "/transport") (on-transport.apply nil msg.args)
       :else nil)))
 
-    { :stop (fn [] (osc-send "/stop"))
+    { :tempo tempo
+      :meter meter
+
+      :stop (fn [] (osc-send "/stop"))
       :play (fn [] (osc-send "/start"))
 
       :each each }))
+
+(defn update-transport [transport tempo meter]
+  (set! transport.tempo tempo)
+  (set! transport.meter meter)
+  transport)
+
+(defn transport [tempo meter]
+  (if persist.transport
+    (update-transport persist.transport tempo meter)
+    (let [transport (make-transport tempo meter)]
+      (set! persist.transport transport)
+      transport)))
