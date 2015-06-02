@@ -1,83 +1,22 @@
 (ns novation-launchpad)
 
-(def ^:private midi (require "../lib/midi.wisp"))
-(def ^:private util (require "../lib/util.wisp"))
+(def ^:private event2 (require "eventemitter2"))
+(def ^:private midi   (require "../lib/midi.wisp"))
+(def ^:private util   (require "../lib/util.wisp"))
 
-; hardware
-
-(defn connect
-  ([]         (connect (fn [])))
-  ([on-input] (midi.connect-controller "a2j:Launchpad" on-input)))
-
-; round buttons
-
-(def circles-top   (.map (util.range 104 8) (fn [col] [176 col])))
-
-(def circles-right (.map (util.range 8)     (fn [row] [176 (+ 8 (* 16 row))])))
-
-; square buttons
-
-(defn join [& args]
-  (let [res []]
-    (args.map (fn [arg] (set! res (res.concat arg))))
-    res))
-
-(defn- by [xx yy f]
-  (join (.map (util.range 8)
-    (fn [y] (.map (util.range 8)
-      (fn [x] (f x y)))))))
-
-; grid mode
-
-(def grid-xy     (by 8 8 (fn [x y] (+ x (* 16 y)))))
-
-(def grid-xy-cw  (by 8 8 (fn [x y] (aget (aget grid-xy (- 7 x)) y))))
-
-(def grid-xy-ccw (by 8 8 (fn [x y] (aget (aget grid-xy x) (- 7 y)))))
-
-(def grid-xy-180 (by 8 8 (fn [x y] (aget (aget grid-xy (- 7 y)) (- 7 x)))))
-
-; TODO drum mode
-
-(def grid-drum     [])
-
-(def grid-drum-cw  [])
-
-(def grid-drum-ccw [])
-
-(def grid-drum-180 [])
-
-; colors
+;;
+;; colors
+;;
 
 (defn color [red green brightness])
-
 (defn colorize [])
 
-; widgets
+;;
+;; pad locations
+;;
 
-(defn- get2 [a x y] (aget (aget a x) y))
-
-(defn keyboard [grid y] [
-
-  (get2 grid (+ 1 y) 0) ; C
-  (get2 grid      y  1) ; C#
-  (get2 grid (+ 1 y) 1) ; D
-  (get2 grid      y  2) ; D#
-  (get2 grid (+ 1 y) 2) ; E
-  (get2 grid (+ 1 y) 3) ; F
-  (get2 grid      y  4) ; F#
-  (get2 grid (+ 1 y) 4) ; G
-  (get2 grid      y  5) ; G#
-  (get2 grid (+ 1 y) 5) ; A
-  (get2 grid      y  6) ; A#
-  (get2 grid (+ 1 y) 6) ; B
-  (get2 grid (+ 1 y) 7) ; C
-
-])
-
-; find controller and establish connection
-
-(def ^:private event2 (require "eventemitter2"))
+(def circles-top   (.map (util.range 104 8) (fn [col] [176 col])))
+(def circles-right (.map (util.range 8)     (fn [row] [176 (+ 8 (* 16 row))])))
 
 (defn- by [xx yy f]
   (.reduce
@@ -87,8 +26,17 @@
     (fn [a b] (a.push b) a)
     []))
 
-(def grids {
-  :xy (by 8 8 (fn [x y] (+ x (* 16 y))))})
+(def grids (let [grid-xy (by 8 8 (fn [x y] (+ x (* 16 y))))] {
+  :xy     grid-xy 
+  :xy-cw  (by 8 8 (fn [x y] (aget (aget grid-xy (- 7 x)) y)))
+  :xy-ccw (by 8 8 (fn [x y] (aget (aget grid-xy x) (- 7 y))))
+  :xy-180 (by 8 8 (fn [x y] (aget (aget grid-xy (- 7 y)) (- 7 x))))
+  ; todo drum mode grids
+}))
+
+;;
+;; widgets
+;;
 
 (defn keyboard
   ([i o g row] (keyboard i o g row 127))
@@ -111,32 +59,44 @@
       { :refresh (fn [] (pad-map.map (fn [n] (o.send-message [144 n color])))) }]
     widget)))
 
+;;
+;; find controller and establish connection
+;;
+
 (defn connect
-  ([]          (connect "Launchpad" :xy))
-  ([grid-type] (connect "Launchpad" grid-type))
+  ([]
+    (connect "Launchpad" :xy))
+  ([grid-type]
+    (connect "Launchpad" grid-type))
   ([hw-name grid-type]
     (let [grid     (aget grids grid-type)
           grid-get (fn [x y] (aget (aget grid x) y))
+
           input    (midi.connect-to-input  hw-name)
           output   (midi.connect-to-output hw-name)
+
           events   (event2.EventEmitter2.)
           widgets  []]
 
-      (events.on "refresh" (fn []
-        (.map widgets (fn [widget] (widget.refresh)))))
+      (let [clear-pad (fn [pad] (output.send-message [144 pad 0]))
+            clear     (fn [] (grid.map (fn [row] (row.map clear-pad))))]
+        (clear)
+        (events.on "clear" clear))
+
+      (let [refresh (fn [] (widgets.map (fn [w] (w.refresh))))]
+        (refresh)
+        (events.on "refresh" refresh))
 
       { :events    events
 
+        :clear     (fn [] (events.emit "clear"))
         :refresh   (fn [] (events.emit "refresh"))
 
-        :grid-type grid-type
+        :gridType  grid-type
 
         :page      (fn [])
-
         :box       (fn [])
-
         :switch    (fn []) 
-
         :keyboard  (fn
           ([row]       (widgets.push (keyboard input output grid-get row)))
           ([row color] (widgets.push (keyboard input output grid-get row color))))
