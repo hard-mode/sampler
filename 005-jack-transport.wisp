@@ -12,19 +12,25 @@
 
 (session
 
-    ;; transport ----------------------------------------------------
-    tempo 140
-    quaver (str (* 500 (/ 60 tempo)) "m")
-    time (.transport (require "./lib/time.wisp") tempo "4/4")
-    ;_ (time.each "step" quaver (fn [] (log "tick")))
+  ;; transport ----------------------------------------------------
+  tempo 140
+  quaver (str (* 500 (/ 60 tempo)) "m")
+  time (.transport (require "./lib/time.wisp") tempo "4/4")
+  ;_ (time.each "step" quaver (fn [] (log "tick")))
 
-    ;;; available controllers ----------------------------------------
-    launchpad (.connect (require "./plugin/novation-launchpad.wisp") :xy)
-    _ (time.each "lpd-refresh" quaver (fn [] (launchpad.refresh)))
+  ;; available controllers ----------------------------------------
+  launchpad (.connect (require "./plugin/novation-launchpad.wisp") :xy)
+  ;_ (time.each "lpd-refresh" quaver launchpad.clear)
+  _ (time.each "lpd-refresh" quaver launchpad.refresh)
 
-    ;;; synth --------------------------------------------------------
-    lpd-kbd-1 (launchpad.keyboard 4 125)
-    lpd-kbd-2 (launchpad.keyboard 6 127)
+  ;; synth --------------------------------------------------------
+  lpd-kbd-1 (launchpad.keyboard 4 125)
+  lpd-kbd-2 (launchpad.keyboard 6 127)
+
+  ;; beat jumper --------------------------------------------------
+  beat-index 0
+  beat-jump  -1
+  lpd-jumper (.map [0 1 2 3] (fn [i] (launchpad.button 0 i)))
 
 )
 

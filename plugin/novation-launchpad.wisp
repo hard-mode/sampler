@@ -38,6 +38,11 @@
 ;; widgets
 ;;
 
+(defn button
+  ([i o g row col] (button i o g row col 127))
+  ([i o g row col color]
+    { :refresh (fn [] (o.send-message [144 (g row col) color]))}))
+
 (defn keyboard
   ([i o g row] (keyboard i o g row 127))
   ([i o g row color] (let [
@@ -76,7 +81,8 @@
           output   (midi.connect-to-output hw-name)
 
           events   (event2.EventEmitter2.)
-          widgets  []]
+          widgets  []
+          wadd     (widgets.push.bind widgets)]
 
       (let [clear-pad (fn [pad] (output.send-message [144 pad 0]))
             clear     (fn [] (grid.map (fn [row] (row.map clear-pad))))]
@@ -96,9 +102,11 @@
 
         :page      (fn [])
         :box       (fn [])
-        :switch    (fn []) 
+        :button    (fn
+          ([row col]       (wadd (button input output grid-get row col)))
+          ([row col color] (wadd (button input output grid-get row col color))))
         :keyboard  (fn
-          ([row]       (widgets.push (keyboard input output grid-get row)))
-          ([row color] (widgets.push (keyboard input output grid-get row color))))
+          ([row]       (wadd (keyboard input output grid-get row)))
+          ([row color] (wadd (keyboard input output grid-get row color))))
 
       })))

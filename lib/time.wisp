@@ -47,7 +47,7 @@
         on-pulse     (fn [ntp utc frm p-ntp p-utc p-frm pulse] (log "pulse" pulse))
         on-tick      (fn [ntp utc frm frame pulse])
         on-drift     (fn [ntp utc frm ntp-diff utc-diff])
-        on-transport (fn [ntp utc frm fps ppm ppc state] (log "transport" state))]
+        on-transport (fn [ntp utc frm fps ppm ppc pt state] (log "transport" state))]
 
     (set! finder (fn [client-name] (if (= 0 (client-name.index-of "jack-osc"))
       (do (osc-connect) (jack.state.events.off "client-online" finder)))))
