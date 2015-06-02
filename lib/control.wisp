@@ -1,3 +1,5 @@
+(ns control)
+
 (defn group
   "Handles a number of controls, in order. "
   [state output members]

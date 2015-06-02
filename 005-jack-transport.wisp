@@ -24,7 +24,8 @@
   nanoktrl2 (.connect (require "./plugin/korg-nanokontrol2.wisp"))
   _ (time.each "lpd-refresh" quaver launchpad.refresh)
   _ (nanoktrl2.events.on "input" (fn [t m1 m2 m3]
-      (log (midi.parse m1 m2 m3))
+      (let [msg (midi.parse m1 m2 m3)]
+        (if (midi.match { :data1 4 } msg) (log msg)))
       (if (and (= m1 189) (= m2 42) (= m3 127)) (time.stop))
       (if (and (= m1 189) (= m2 41) (= m3 127)) (time.play))))
 

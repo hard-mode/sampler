@@ -159,3 +159,11 @@
     (let [channel (bitwise.and d1 15)
           event   (aget event-types (bitwise.and d1 240))]
       {:channel channel :event event :data1 d2 :data2 d3})))
+
+(defn match
+  [mask msg]
+  (.reduce
+    (Object.keys mask)
+    (fn [prev curr]
+      (and prev (= (aget mask curr) (aget msg curr))))
+    true))
