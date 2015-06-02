@@ -34,7 +34,7 @@
       new-timer)))
 
 (defn transport [tempo meter]
-  (let [osc          (osc.port)
+  (let [osc          persist.osc.default-client
 
         jack-osc     (jack.spawn "jack-osc" jack-osc "-p" 57130)
         klick        (jack.spawn "klick" klick "-T" meter tempo)
