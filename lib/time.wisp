@@ -34,14 +34,13 @@
       new-timer)))
 
 (defn transport [tempo meter]
-  (let [osc          persist.osc.default-client
-
-        jack-osc     (jack.spawn "jack-osc" jack-osc "-p" 57130)
+  (let [jack-osc     (jack.spawn "jack-osc" jack-osc "-p" 57130)
         klick        (jack.spawn "klick" klick "-T" meter tempo)
 
+        osc-send     (osc.bind-to 57130) ; jack-osc default port
         bitmask      (Long.fromString "FFFFFFF" false 16)
-        osc-connect  (fn [] (osc.send { :address "/receive" :args [bitmask] }
-                                      "127.0.0.1" 57130))
+        osc-connect  (fn [] (osc-send "/receive" bitmask))
+
         finder       nil
 
         on-pulse     (fn [ntp utc frm p-ntp p-utc p-frm pulse] (log "pulse" pulse))
@@ -61,4 +60,7 @@
       (= msg.address "/transport") (on-transport.apply nil msg.args)
       :else nil)))
 
-    { :each each }))
+    { :stop (fn [] (osc-send "/stop"))
+      :play (fn [] (osc-send "/start"))
+
+      :each each }))

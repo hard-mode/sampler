@@ -18,10 +18,13 @@
   time (.transport (require "./lib/time.wisp") tempo "4/4")
   ;_ (time.each "step" quaver (fn [] (log "tick")))
 
-  ;; available controllers ----------------------------------------
+  ;; connect to controllers ---------------------------------------
   launchpad (.connect (require "./plugin/novation-launchpad.wisp") :xy)
-  ;_ (time.each "lpd-refresh" quaver launchpad.clear)
+  nanoktrl2 (.connect (require "./plugin/korg-nanokontrol2.wisp"))
   _ (time.each "lpd-refresh" quaver launchpad.refresh)
+  _ (nanoktrl2.events.on "input" (fn [t m1 m2 m3]
+      (if (and (= m1 189) (= m2 42) (= m3 127)) (time.stop))
+      (if (and (= m1 189) (= m2 41) (= m3 127)) (time.play))))
 
   ;; synth --------------------------------------------------------
   lpd-kbd-1 (launchpad.keyboard 4 125)
