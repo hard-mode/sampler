@@ -10,33 +10,81 @@
 (session
 
   ;; transport ----------------------------------------------------
-  tempo 140
-  quaver (str (* 500 (/ 60 tempo)) "m")
-  time (.transport (require "./lib/time.wisp") tempo "4/4")
-  ;_ (time.each "step" quaver (fn [] (log "tick")))
+
+  tempo
+    140
+
+  time
+    (.transport (require "./lib/time.wisp") tempo "4/4")
+
+  ;; clip launcher ------------------------------------------------
+
+  jack
+    (require "./lib/jack.wisp")
+
+  postmelodic
+    (require "./plugin/postmelodic.wisp")
+
+  hw
+    jack.system
+
+  init-clip
+    (fn [clip-name]
+      (let [player (postmelodic.player clip-name)]
+        (jack.chain clip-name
+          [ [player "output"] [hw "playback_1"] ]
+          [ [player "output"] [hw "playback_2"] ])
+        player))
+
+  clip-track
+    (fn [options & clips] ; TODO where is assoc?
+      { :name
+          options.name
+        :clips
+          (clips.map init-clip) })
+
+  track-1
+    (clip-track { :name "Dubstep Drums" }
+      "samples/dubstep-140bpm.wav"
+      "samples/dubstep2-140bpm.wav"
+      "samples/dubstep3-140bpm.wav")
+
+  track-2
+    (clip-track { :name "Breakbeat Drums" }
+      "samples/breakbeat-140bpm.wav")
+
+  _ (log track-1)
+  _ (log track-2)
 
   ;; connect to controllers ---------------------------------------
-  midi      (require "./lib/midi.wisp")
-  launchpad (.connect (require "./plugin/novation-launchpad.wisp") :xy)
-  nanoktrl2 (.connect (require "./plugin/korg-nanokontrol2.wisp"))
-  _ (time.each "lpd-refresh" quaver launchpad.refresh)
-  _ (nanoktrl2.events.on "input" (fn [t m1 m2 m3]
+
+  midi
+    (require "./lib/midi.wisp")
+
+  launchpad
+    (.connect (require "./plugin/novation-launchpad.wisp") :xy)
+
+  nanoktrl2
+    (.connect (require "./plugin/korg-nanokontrol2.wisp"))
+
+  _
+    (nanoktrl2.events.on "input" (fn [t m1 m2 m3]
       (let [msg   (midi.parse m1 m2 m3)
             match (fn [mask] (midi.match mask msg))]
         (if (match {:event :control :data2 127}) (cond
           (match {:data1 42}) (time.stop)
           (match {:data1 41}) (time.play))))))
 
+)
+
   ;; synth --------------------------------------------------------
-  lpd-kbd-1 (launchpad.keyboard 4 125)
-  lpd-kbd-2 (launchpad.keyboard 6 127)
+  ;lpd-kbd-1 (launchpad.keyboard 4 125)
+  ;lpd-kbd-2 (launchpad.keyboard 6 127)
 
   ;; beat jumper --------------------------------------------------
-  beat-index 0
-  beat-jump  -1
-  lpd-jumper (.map [0 1 2 3] (fn [i] (launchpad.button 0 i)))
-
-)
+  ;beat-index 0
+  ;beat-jump  -1
+  ;lpd-jumper (.map [0 1 2 3] (fn [i] (launchpad.button 0 i)))
 
     ;;; beat jumper --------------------------------------------------
     ;index 0
