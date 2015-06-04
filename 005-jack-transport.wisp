@@ -90,8 +90,13 @@
     (clip-track { :name "Breakbeat Drums" }
       "samples/breakbeat-140bpm.wav")
 
-  _ (log track-1)
-  _ (log track-2)
+  track-3
+    (clip-track { :name "" }
+      "samples/bass1-140bpm.wav")
+
+  track-4
+    (clip-track { :name "" }
+      "samples/lead1-140bpm.wav")
 
 )
 
