@@ -73,7 +73,7 @@
       ;[ "/help"  (web.endpoint "joker") ])
 
     server (web.server 2097
-      (web.page "/" (path.resolve "./web-ui.js"))
+      (web.page "/" (path.resolve "./web-ui-006.js"))
       (web.endpoint "/state" (fn [req resp]
         (if (= "GET" req.method) (web.send-json req resp
           { :kicks  kicks

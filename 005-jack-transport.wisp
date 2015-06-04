@@ -18,13 +18,7 @@
   time
     (.transport (require "./lib/time.wisp") tempo "4/4")
 
-  ;; connect to controllers ---------------------------------------
-
-  midi
-    (require "./lib/midi.wisp")
-
-  launchpad
-    (.connect (require "./plugin/novation-launchpad.wisp") :xy)
+  ;; control transport from nanokontrol2 --------------------------
 
   nanoktrl2
     (.connect (require "./plugin/korg-nanokontrol2.wisp"))
@@ -39,64 +33,38 @@
 
   ;; clip launcher ------------------------------------------------
 
-  control
-    (require "./lib/control.wisp")
+  clip
+    (require "./plugin/clip.wisp")
 
-  jack
-    (require "./lib/jack.wisp")
-
-  postmelodic
-    (require "./plugin/postmelodic.wisp")
-
-  util
-    (require "./lib/util.wisp")
-
-  hw
-    jack.system
-
-  init-clip
-    (fn [track-number clip-number clip-name]
-      (let [note   (launchpad.grid-get clip-number track-number)
-            btn    (control.btn-push { :data1 note } )
-            player (postmelodic.player clip-name)]
-        (launchpad.widgets.members.push btn)
-        (launchpad.events.on "btn-on" (fn [arg]
-          (if (= arg note) (player.play))))
-        (launchpad.events.on "btn-off" (fn [arg]
-          (if (= arg note) (player.stop))))
-        (jack.chain clip-name
-          [ [player "output"] [hw "playback_1"] ]
-          [ [player "output"] [hw "playback_2"] ])
-        player))
-
-  next-track
-    (util.counter)
-
-  clip-track
-    (fn [options & clips] ; TODO where is assoc?
-      (let [track-number (next-track)
-            next-clip    (util.counter)]
-        (assoc options
-          :clips
-            (clips.map (fn [clip] (init-clip track-number (next-clip) clip))))))
-
-  track-1
-    (clip-track { :name "Dubstep Drums" }
+  tracks [
+    (clip.track { :name "Dubstep Drums"   }
       "samples/dubstep-140bpm.wav"
       "samples/dubstep2-140bpm.wav"
       "samples/dubstep3-140bpm.wav")
 
-  track-2
-    (clip-track { :name "Breakbeat Drums" }
+    (clip.track { :name "Breakbeat Drums" }
       "samples/breakbeat-140bpm.wav")
 
-  track-3
-    (clip-track { :name "" }
+    (clip.track { :name "Bass"            }
       "samples/bass1-140bpm.wav")
 
-  track-4
-    (clip-track { :name "" }
+    (clip.track { :name "Leads"           }
       "samples/lead1-140bpm.wav")
+  ]
+
+  ;; start clips from launchpad and web ui ------------------------
+
+  launchpad
+    (.connect (require "./plugin/novation-launchpad.wisp") :xy)
+
+  web
+    (require "./lib/web.wisp")
+
+  path
+    (require "path")
+
+  server (web.server 2097
+    (web.page "/" (path.resolve "./web-ui-005.js")))
 
 )
 
