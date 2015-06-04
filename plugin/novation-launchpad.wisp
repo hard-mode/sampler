@@ -1,8 +1,10 @@
-(ns novation-launchpad)
+(ns novation-launchpad (:require [wisp.runtime :refer [=]]))
 
-(def ^:private event2 (require "eventemitter2"))
-(def ^:private midi   (require "../lib/midi.wisp"))
-(def ^:private util   (require "../lib/util.wisp"))
+(def ^:private control (require "../lib/control.wisp"))
+(def ^:private deep    (require "deep-diff"))
+(def ^:private event2  (require "eventemitter2"))
+(def ^:private midi    (require "../lib/midi.wisp"))
+(def ^:private util    (require "../lib/util.wisp"))
 
 ;;
 ;; colors
@@ -81,32 +83,30 @@
           output   (midi.connect-to-output hw-name)
 
           events   (event2.EventEmitter2.)
-          widgets  []
-          wadd     (widgets.push.bind widgets)]
+          widgets  (control.group)]
 
       (let [clear-pad (fn [pad] (output.send-message [144 pad 0]))
             clear     (fn [] (grid.map (fn [row] (row.map clear-pad))))]
         (clear)
         (events.on "clear" clear))
 
-      (let [refresh (fn [] (widgets.map (fn [w] (w.refresh))))]
-        (refresh)
-        (events.on "refresh" refresh))
+      ;(let [refresh (fn [] (widgets.map (fn [w] (w.refresh))))]
+        ;(refresh)
+        ;(events.on "refresh" refresh))
+
+      (input.on "message" (fn [t m]
+        (let [next-widgets (widgets.update (midi.parse m))]
+          (next-widgets.output.map (fn [out]
+            (cond (= out.verb :on)  (output.send-message [144 out.data1 70])
+                  (= out.verb :off) (output.send-message [144 out.data1 127]))))
+          (set! widgets next-widgets))))
 
       { :events    events
+        :widgets   widgets
 
         :clear     (fn [] (events.emit "clear"))
         :refresh   (fn [] (events.emit "refresh"))
 
-        :gridType  grid-type
-
-        :page      (fn [])
-        :box       (fn [])
-        :button    (fn
-          ([row col]       (wadd (button input output grid-get row col)))
-          ([row col color] (wadd (button input output grid-get row col color))))
-        :keyboard  (fn
-          ([row]       (wadd (keyboard input output grid-get row)))
-          ([row color] (wadd (keyboard input output grid-get row color))))
+        :gridGet   grid-get
 
       })))

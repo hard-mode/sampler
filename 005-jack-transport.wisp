@@ -1,5 +1,6 @@
 #!/usr/bin/env ./node_modules/wisp/bin/wisp.js
-(ns sampler (:require [wisp.runtime :refer [= / and or str re-pattern assoc]]))
+(ns sampler (:require [wisp.runtime  :refer [= / and or str re-pattern]]
+                      [wisp.sequence :refer [assoc]]))
 ((require "./lib/boot.wisp") module)
 
 ;; TODO macro imports
@@ -16,45 +17,6 @@
 
   time
     (.transport (require "./lib/time.wisp") tempo "4/4")
-
-  ;; clip launcher ------------------------------------------------
-
-  jack
-    (require "./lib/jack.wisp")
-
-  postmelodic
-    (require "./plugin/postmelodic.wisp")
-
-  hw
-    jack.system
-
-  init-clip
-    (fn [clip-name]
-      (let [player (postmelodic.player clip-name)]
-        (jack.chain clip-name
-          [ [player "output"] [hw "playback_1"] ]
-          [ [player "output"] [hw "playback_2"] ])
-        player))
-
-  clip-track
-    (fn [options & clips] ; TODO where is assoc?
-      { :name
-          options.name
-        :clips
-          (clips.map init-clip) })
-
-  track-1
-    (clip-track { :name "Dubstep Drums" }
-      "samples/dubstep-140bpm.wav"
-      "samples/dubstep2-140bpm.wav"
-      "samples/dubstep3-140bpm.wav")
-
-  track-2
-    (clip-track { :name "Breakbeat Drums" }
-      "samples/breakbeat-140bpm.wav")
-
-  _ (log track-1)
-  _ (log track-2)
 
   ;; connect to controllers ---------------------------------------
 
@@ -74,6 +36,58 @@
         (if (match {:event :control :data2 127}) (cond
           (match {:data1 42}) (time.stop)
           (match {:data1 41}) (time.play))))))
+
+  ;; clip launcher ------------------------------------------------
+
+  control
+    (require "./lib/control.wisp")
+
+  jack
+    (require "./lib/jack.wisp")
+
+  postmelodic
+    (require "./plugin/postmelodic.wisp")
+
+  util
+    (require "./lib/util.wisp")
+
+  hw
+    jack.system
+
+  init-clip
+    (fn [track-number clip-number clip-name]
+      (let [note   (launchpad.grid-get clip-number track-number)
+            btn    (control.btn-push { :data1 note } )
+            player (postmelodic.player clip-name)]
+        (launchpad.widgets.members.push btn)
+        (jack.chain clip-name
+          [ [player "output"] [hw "playback_1"] ]
+          [ [player "output"] [hw "playback_2"] ])
+        player))
+
+  next-track
+    (util.counter)
+
+  clip-track
+    (fn [options & clips] ; TODO where is assoc?
+      (let [track-number (next-track)
+            next-clip    (util.counter)]
+        (assoc options
+          :clips
+            (clips.map (fn [clip] (init-clip track-number (next-clip) clip))))))
+
+  track-1
+    (clip-track { :name "Dubstep Drums" }
+      "samples/dubstep-140bpm.wav"
+      "samples/dubstep2-140bpm.wav"
+      "samples/dubstep3-140bpm.wav")
+
+  track-2
+    (clip-track { :name "Breakbeat Drums" }
+      "samples/breakbeat-140bpm.wav")
+
+  _ (log track-1)
+  _ (log track-2)
 
 )
 

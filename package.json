@@ -4,6 +4,7 @@
     "chance": "^0.7.3",
     "chokidar": "^1.0.1",
     "dbus-native": "^0.2.0",
+    "deep-diff": "^0.3.2",
     "eventemitter2": "^0.4.14",
     "freeport": "^1.0.5",
     "hyperscript": "^1.4.6",
