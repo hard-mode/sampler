@@ -64,7 +64,10 @@
     (require "path")
 
   server (web.server 2097
-    (web.page "/" (path.resolve "./web-ui-005.js")))
+    (web.page "/" (path.resolve "./web-ui-005.js"))
+    (web.endpoint "/state" (fn [req resp]
+      (if (= "GET" req.method) (web.send-json req resp
+        { :tracks tracks })))))
 
 )
 
