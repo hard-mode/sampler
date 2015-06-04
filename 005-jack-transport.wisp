@@ -60,6 +60,10 @@
             btn    (control.btn-push { :data1 note } )
             player (postmelodic.player clip-name)]
         (launchpad.widgets.members.push btn)
+        (launchpad.events.on "btn-on" (fn [arg]
+          (if (= arg note) (player.play))))
+        (launchpad.events.on "btn-off" (fn [arg]
+          (if (= arg note) (player.stop))))
         (jack.chain clip-name
           [ [player "output"] [hw "playback_1"] ]
           [ [player "output"] [hw "playback_2"] ])

@@ -94,14 +94,19 @@
         ;(refresh)
         ;(events.on "refresh" refresh))
 
-      (input.on "message" (fn [t m]
-        (let [next-widgets (widgets.update (midi.parse m))]
+      (let [update (fn [evt]
+        (let [next-widgets (widgets.update evt)]
           (deep.observable-diff widgets.output next-widgets.output (fn [d]
             (let [out (cond (= d.kind "A") d.item.rhs
                             (= d.kind "E") (aget next-widgets.output (aget d.path 0)))]
-              (cond (= out.verb :on)  (output.send-message [144 out.data1 70])
-                    (= out.verb :off) (output.send-message [144 out.data1 127])))))
-          (set! widgets next-widgets))))
+              (cond (= out.verb :on)  (do (events.emit "btn-on" out.data1)
+                                          (output.send-message [144 out.data1 54]))
+                    (= out.verb :off) (do (events.emit "btn-off" out.data1)
+                                          (output.send-message [144 out.data1 48]))))))
+          (set! widgets next-widgets)))]
+        (events.on "update" update)
+        (input.on "message" (fn [t m] (update (midi.parse m)))))
+
 
       { :events    events
         :widgets   widgets

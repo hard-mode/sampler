@@ -44,6 +44,7 @@
               :port    jack-client.port
 
               :play    (fn [cue]    (osc-send "/play" 0 (or cue 0)))
+              :stop    (fn []       (osc-send "/stop" 0))
               :kill    (fn [signal] (jack-process.kill signal)) }]
 
         (set! (aget persist.postmelodic jack-client-name) state)
