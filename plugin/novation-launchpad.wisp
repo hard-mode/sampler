@@ -96,9 +96,11 @@
 
       (input.on "message" (fn [t m]
         (let [next-widgets (widgets.update (midi.parse m))]
-          (next-widgets.output.map (fn [out]
-            (cond (= out.verb :on)  (output.send-message [144 out.data1 70])
-                  (= out.verb :off) (output.send-message [144 out.data1 127]))))
+          (deep.observable-diff widgets.output next-widgets.output (fn [d]
+            (let [out (cond (= d.kind "A") d.item.rhs
+                            (= d.kind "E") (aget next-widgets.output (aget d.path 0)))]
+              (cond (= out.verb :on)  (output.send-message [144 out.data1 70])
+                    (= out.verb :off) (output.send-message [144 out.data1 127])))))
           (set! widgets next-widgets))))
 
       { :events    events
