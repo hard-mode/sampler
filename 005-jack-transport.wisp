@@ -13,13 +13,12 @@
   ;; transport ----------------------------------------------------
 
   tempo
-    140
+    174
 
   time
     (.transport (require "./lib/time.wisp") tempo "4/4")
 
   ;; control transport from nanokontrol2 --------------------------
-
 
   nanoktrl2
     (.connect (require "./plugin/korg-nanokontrol2.wisp"))
@@ -41,19 +40,14 @@
     (require "./plugin/clip.wisp")
 
   tracks [
-    (clip.track { :name "Dubstep Drums"   }
-      "samples/dubstep-140bpm.wav"
-      "samples/dubstep2-140bpm.wav"
-      "samples/dubstep3-140bpm.wav")
+    (clip.track { :name "Drums 1"   }
+      "samples/drums1-174bpm.wav")
 
-    (clip.track { :name "Breakbeat Drums" }
-      "samples/breakbeat-140bpm.wav")
+    (clip.track { :name "Drums 2"   }
+      "samples/drums2-174bpm.wav")
 
-    (clip.track { :name "Bass"            }
-      "samples/bass1-140bpm.wav")
-
-    (clip.track { :name "Leads"           }
-      "samples/lead1-140bpm.wav")
+    (clip.track { :name "Bass" }
+      "samples/bass1-174bpm.wav")
   ]
 
   ;; start clips from launchpad and web ui ------------------------

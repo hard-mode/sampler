@@ -112,12 +112,15 @@
     (or m (let [m       (new midi.input)
                 vpcname "^RtMidi Input Client"
                 vppname (str "^" port-name)
-                hppname (str "^" port-name ".+(capture)")]
+                hppname (str "^" port-name ".+(capture)")
+                ports-online
+                  (Q.all [ (expect-hardware-port hppname)
+                           (expect-virtual-port vpcname vppname) ])]
+      (set! m.after-online ports-online)
       (set! (aget persist.midi.inputs port-name) m)
       (jack.after-session-start.then (fn []
         (m.open-virtual-port port-name)
-        (.then (Q.all [ (expect-hardware-port hppname)
-                        (expect-virtual-port vpcname vppname) ])
+        (.then ports-online 
           (fn [ports] (let [out-port (aget ports 0)
                             in-port  (aget ports 1)]
             (jack.connect-by-name
@@ -131,12 +134,15 @@
     (or m (let [m       (new midi.output)
                 vpcname "^RtMidi Output Client"
                 vppname (str "^" port-name)
-                hppname (str "^" port-name ".+(playback)")]
+                hppname (str "^" port-name ".+(playback)")
+                ports-online
+                  (Q.all [ (expect-virtual-port vpcname vppname)
+                           (expect-hardware-port hppname) ])]
+      (set! m.after-online ports-online)
       (set! (aget persist.midi.outputs port-name) m)
       (jack.after-session-start.then (fn []
         (m.open-virtual-port port-name)
-        (.then (Q.all [ (expect-virtual-port vpcname vppname)
-                        (expect-hardware-port hppname) ])
+        (.then ports-online
           (fn [ports] (let [out-port (aget ports 0)
                             in-port  (aget ports 1)]
             (jack.connect-by-name

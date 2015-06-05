@@ -89,7 +89,7 @@
 
       (let [clear-pad (fn [pad] (output.send-message [144 pad 0]))
             clear     (fn [] (grid.map (fn [row] (row.map clear-pad))))]
-        (clear)
+        (output.after-online.then (fn [] (clear)))
         (events.on "clear" clear))
 
       ;(let [refresh (fn [] (widgets.map (fn [w] (w.refresh))))]
