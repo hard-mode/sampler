@@ -84,10 +84,7 @@
           output   (midi.connect-to-output (or options.name "Launchpad"))
 
           events   (event2.EventEmitter2.)
-          widgets  (control.group
-                     (.map (flatten controls) (fn [c]
-                       (let [d (c grid-get events)]
-                         (log d) d))))
+          widgets  (control.group (controls.map (fn [c] (log "->" c) (c grid-get events))))
         ]
 
       (let [clear-pad (fn [pad] (output.send-message [144 pad 0]))
