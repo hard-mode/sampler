@@ -8,22 +8,13 @@
 
 (def ^:private hw jack.system)
 
-(defn init-clip [track-number clip-number clip-name]
-  (let [note   (launchpad.grid-get clip-number track-number)
-        btn    (control.btn-push { :data1 note } )
-        player (postmelodic.player clip-name)]
-    (launchpad.widgets.members.push btn)
-    (launchpad.events.on "btn-on" (fn [arg]
-      (if (= arg note) (player.play))))
-    (launchpad.events.on "btn-off" (fn [arg]
-      (if (= arg note) (player.stop))))
+(defn clip [clip-name]
+  (let [player (postmelodic.player clip-name)]
     (jack.chain clip-name
       [ [player "output"] [hw "playback_1"] ]
       [ [player "output"] [hw "playback_2"] ])
-    player))
-
-(defn clip [clip-name]
-  { :name clip-name })
+    { :name   clip-name
+      :player player }))
 
 (defn track [options & clip-names]
   (let [next-clip    (util.counter)]

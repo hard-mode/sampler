@@ -72,15 +72,14 @@
 
 (defn connect
   ([]
-    (connect "Launchpad" :xy))
-  ([grid-type]
-    (connect "Launchpad" grid-type))
-  ([hw-name grid-type]
-    (let [grid     (aget grids grid-type)
+    (connect { :name "Launchpad"
+               :grid :xy }))
+  ([options & controls]
+    (let [grid     (aget grids options.grid)
           grid-get (fn [x y] (aget (aget grid x) y))
 
-          input    (midi.connect-to-input  hw-name)
-          output   (midi.connect-to-output hw-name)
+          input    (midi.connect-to-input  options.name)
+          output   (midi.connect-to-output options.name)
 
           events   (event2.EventEmitter2.)
           widgets  (control.group)]
