@@ -70,19 +70,25 @@
 ;; find controller and establish connection
 ;;
 
+(def ^:private flatten (require "flatten"))
+
 (defn connect
   ([]
     (connect { :name "Launchpad"
                :grid :xy }))
   ([options & controls]
-    (let [grid     (aget grids options.grid)
+    (let [grid     (or (aget grids options.grid) (aget grids :xy))
           grid-get (fn [x y] (aget (aget grid x) y))
 
-          input    (midi.connect-to-input  options.name)
-          output   (midi.connect-to-output options.name)
+          input    (midi.connect-to-input  (or options.name "Launchpad"))
+          output   (midi.connect-to-output (or options.name "Launchpad"))
 
           events   (event2.EventEmitter2.)
-          widgets  (control.group)]
+          widgets  (control.group
+                     (.map (flatten controls) (fn [c]
+                       (let [d (c grid-get events)]
+                         (log d) d))))
+        ]
 
       (let [clear-pad (fn [pad] (output.send-message [144 pad 0]))
             clear     (fn [] (grid.map (fn [row] (row.map clear-pad))))]

@@ -21,3 +21,22 @@
     (assoc options
       :clips
         (clip-names.map clip))))
+
+(defn init-clip [track-number clip-number clip]
+  (fn [grid-get events]
+    (let [note   (grid-get clip-number track-number)
+          btn    (control.toggle { :data1 note } )]
+      (events.on "btn-on" (fn [arg]
+        (if (= arg note) (clip.player.play))))
+      (events.on "btn-off" (fn [arg]
+        (if (= arg note) (clip.player.stop))))
+      btn)))
+
+(defn init-track [track track-number]
+  (fn [grid-get events]
+    (control.group
+      (track.clips.map (fn [clip clip-number]
+        ((init-clip track-number clip-number clip) grid-get events))))))
+
+(defn launcher [tracks]
+  (tracks.map init-track))

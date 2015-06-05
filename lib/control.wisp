@@ -7,10 +7,8 @@
 
 (defn group
   "Handles a number of controls, in order. "
-  [state output members]
-  (let [state   (or state [])
-        output  (or output [])
-        members (or members [])]
+  ([members] (group members [] []))
+  ([members state output]
     { :state   state
       :output  output
       :members members
@@ -27,30 +25,80 @@
                       (m.output.map (fn [o]
                         (if (= -1 (out.index-of o)) (out.push o))))
                           out) []) ]
-            (group next-state next-output next-members))) }))
+            (group next-members next-state next-output))) }))
+
+
+; TODO factor out mask/output logic which is midi-specific
 
 
 (def toggle-state { :on :off :off :on })
 
 
-(defn btn-push
+(defn momentary
   "Lights up when pressed. "
   ([mask]
-    (btn-push mask :off :off))
+    (momentary mask :off :off))
   ([mask state]
-    (btn-push mask state state))
+    (momentary mask state state))
   ([mask base-state current-state]
     { :state  current-state
       :output [(assoc mask :verb current-state)]
       :mask   mask
       :update
-      (fn update-btn-push [msg]
+      (fn update-momentary [msg]
         (let [on         (midi.match (assoc mask :event :note-on)  msg)
               off        (midi.match (assoc mask :event :note-off) msg)
               next-state (if on (aget toggle-state base-state)
                            (if off base-state
                              current-state))]
-          (btn-push mask base-state next-state))) }))
+          (momentary mask base-state next-state))) }))
+
+
+(defn toggle
+  "Toggles between two states."
+  ([mask] (toggle mask :off))
+  ([mask state]
+    { :state  state
+      :output [(assoc mask :verb state)]
+      :mask   mask
+      :update
+      (fn update-toggle [msg]
+        (let [match      (midi.match (assoc mask :event :note-on) msg)
+              next-state (if match (aget toggle-state state) state)]
+          (toggle mask next-state))) }))
+
+
+(defn lazy-toggle
+  "Toggles between two states on release."
+  ([mask] (lazy-toggle mask :off false))
+  ([mask state] (lazy-toggle mask :off false))
+  ([mask state pressed]
+    { :mask    mask
+      :state   state
+      :pressed pressed
+      :output  [(assoc mask :verb state)]
+      :update
+      (fn update-lazy-toggle [msg]
+        (let [released     (midi.match (assoc mask :event :note-off) msg)
+              next-pressed (or (and pressed (not released))
+                               (midi.match (assoc mask :event :note-on) msg))
+              next-state   (if (and pressed released) (aget toggle-state state) state)]
+          (lazy-toggle mask next-state next-pressed))) }))
+
+
+;(defn select
+  ;"Only one out of several can be on at a given time. "
+  ;([many] (select many (aget many 0)))
+  ;([many state]
+    ;{:fn (fn ! [msg]
+      ;(let [matches    (filter #(= (:state %) :on)
+                         ;(for [mask many] ((:fn (btn-switch mask)) msg)))
+            ;next-state (or (get (first matches) :mask) state)]
+        ;(btn-select many next-state)))
+     ;:many many
+     ;:state state
+     ;:output (for [mask many] (assoc mask :verb (if (midi-match mask state)
+                                                 ;:on :off)))}))
 
 
 ;(defn btn-switch

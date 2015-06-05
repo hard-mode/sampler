@@ -62,22 +62,9 @@
     (require "./lib/control.wisp")
 
   launchpad
-    (.connect (require "./plugin/novation-launchpad.wisp"))
-
-  init-clip
-    (fn [track-number clip-number clip]
-      (let [note   (launchpad.grid-get clip-number track-number)
-            btn    (control.btn-push { :data1 note } )]
-        (launchpad.widgets.members.push btn)
-        (launchpad.events.on "btn-on" (fn [arg]
-          (if (= arg note) (clip.player.play))))
-        (launchpad.events.on "btn-off" (fn [arg]
-          (if (= arg note) (clip.player.stop))))))
-
-  session-view
-    (tracks.map (fn [track track-number]
-      (track.clips.map (fn [clip clip-number]
-        (init-clip track-number clip-number clip)))))
+    (.connect (require "./plugin/novation-launchpad.wisp")
+      {}
+      (clip.launcher tracks))
 
   web
     (require "./lib/web.wisp")
