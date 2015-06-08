@@ -8,6 +8,7 @@
 (defmacro session [& body]
   `(defn start [] (let [~@body])))
 
+
 (session
 
   ;; transport ----------------------------------------------------
@@ -57,20 +58,57 @@
 
   launchpad
     (.connect (require "./plugin/novation-launchpad.wisp")
-      {}
-      (clip.launcher tracks))
+      {})
 
-  web
-    (require "./lib/web.wisp")
+  util
+    (require "./lib/util.wisp")
 
-  path
-    (require "path")
+  coords
+    (fn [& args] (args.join ","))
 
-  server (web.server 2097
-    (web.page "/" (path.resolve "./web-ui-005.js"))
-    (web.endpoint "/state" (fn [req resp]
-      (if (= "GET" req.method) (web.send-json req resp
-        { :tracks tracks })))))
+  midi-grid
+    (fn [xx yy to-midi]
+      (let [midi-to-xy (Map.)
+            xy-to-midi (Map.)]
+        (.map (util.range xx) (fn [x]
+          (.map (util.range yy) (fn [y]
+            (let [midi (to-midi x y)
+                  xy   (coords  x y)]
+              (midi-to-xy.set midi xy)
+              (xy-to-midi.set xy midi))))))
+        { :midiToXy midi-to-xy
+          :xyToMidi xy-to-midi }))
+
+  grid
+    (midi-grid 8 8 (fn [x y] (+ x (* 16 y))))
+
+  launcher
+    (let [launcher (Map.)]
+      (tracks.map (fn [track track-no]
+        (track.clips.map (fn [clip clip-no]
+          (let [coords (coords track-no clip-no)]
+            (log (grid.xy-to-midi.get coords))
+            (launchpad.send 144 (grid.xy-to-midi.get coords) 127)
+            (launcher.set coords clip))))))
+      launcher)
+
+  _ (launchpad.events.on "input" (fn [msg]
+      (if (= :note-on msg.event)
+        (let [clip (launcher.get (grid.midi-to-xy.get msg.data1))]
+          (if clip (clip.player.play))))))
+
+
+  ;web
+    ;(require "./lib/web.wisp")
+
+  ;path
+    ;(require "path")
+
+  ;server (web.server 2097
+    ;(web.page "/" (path.resolve "./web-ui-005.js"))
+    ;(web.endpoint "/state" (fn [req resp]
+      ;(if (= "GET" req.method) (web.send-json req resp
+        ;{ :tracks tracks })))))
 
 )
 

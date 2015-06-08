@@ -83,42 +83,20 @@
           input    (midi.connect-to-input  (or options.name "Launchpad"))
           output   (midi.connect-to-output (or options.name "Launchpad"))
 
-          events   (event2.EventEmitter2.)
-          widgets  (control.group (controls.map (fn [c] (log "->" c) (c grid-get events))))
-        ]
+          events   (event2.EventEmitter2.)]
 
       (let [clear-pad (fn [pad] (output.send-message [144 pad 0]))
             clear     (fn [] (grid.map (fn [row] (row.map clear-pad))))]
         (output.after-online.then (fn [] (clear)))
         (events.on "clear" clear))
 
-      ;(let [refresh (fn [] (widgets.map (fn [w] (w.refresh))))]
-        ;(refresh)
-        ;(events.on "refresh" refresh))
-
-      (let [update (fn [evt]
-        (let [next-widgets (widgets.update evt)
-              updated      []]
-          (deep.observable-diff widgets.output next-widgets.output (fn [d]
-            (let [out (cond (= d.kind "A") d.item.rhs
-                            (= d.kind "E") (aget next-widgets.output (aget d.path 0)))]
-              (cond (= out.verb :on)  (do (updated.push ["btn-on" out.data1])
-                                          (output.send-message [144 out.data1 54]))
-                    (= out.verb :off) (do (updated.push ["btn-off" out.data1])
-                                          (output.send-message [144 out.data1 48]))))))
-          (set! widgets next-widgets)
-          updated))]
-        (events.on "update" update)
-        (input.on "message" (fn [t m]
-          (.map (update (midi.parse m)) (fn [args] (events.emit (aget args 0) (aget args 1)))))))
-
+      (input.on "message" (fn [dt msg] (events.emit "input" (midi.parse msg))))
 
       { :events    events
-        :widgets   widgets
 
         :clear     (fn [] (events.emit "clear"))
-        :refresh   (fn [] (events.emit "refresh"))
+        :send      (fn [m d1 d2]
+                     (log "-> then")
+                     (output.after-online.then (fn [] (log "-> now" m d1 d2) (output.send-message [m d1 d2]))))
 
-        :gridGet   grid-get
-
-      })))
+        :gridGet   grid-get })))

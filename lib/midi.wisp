@@ -115,8 +115,10 @@
                 hppname (str "^" port-name ".+(capture)")
                 ports-online
                   (Q.all [ (expect-hardware-port hppname)
-                           (expect-virtual-port vpcname vppname) ])]
+                           (expect-virtual-port vpcname vppname) ])
+                connected (Q.deferred)]
       (set! m.after-online ports-online)
+      (set! m.after-connect connected.promise)
       (set! (aget persist.midi.inputs port-name) m)
       (jack.after-session-start.then (fn []
         (m.open-virtual-port port-name)
@@ -137,8 +139,10 @@
                 hppname (str "^" port-name ".+(playback)")
                 ports-online
                   (Q.all [ (expect-virtual-port vpcname vppname)
-                           (expect-hardware-port hppname) ])]
+                           (expect-hardware-port hppname) ]
+                connected (Q.deferred))]
       (set! m.after-online ports-online)
+      (set! m.after-connect connected.promise)
       (set! (aget persist.midi.outputs port-name) m)
       (jack.after-session-start.then (fn []
         (m.open-virtual-port port-name)
