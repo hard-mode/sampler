@@ -87,7 +87,7 @@
 
       (let [clear-pad (fn [pad] (output.send-message [144 pad 0]))
             clear     (fn [] (grid.map (fn [row] (row.map clear-pad))))]
-        (output.after-online.then (fn [] (clear)))
+        (output.connected.then (fn [] (clear)))
         (events.on "clear" clear))
 
       (input.on "message" (fn [dt msg] (events.emit "input" (midi.parse msg))))
@@ -96,7 +96,7 @@
 
         :clear     (fn [] (events.emit "clear"))
         :send      (fn [m d1 d2]
-                     (output.after-online.then (fn []
+                     (output.connected.then (fn []
                        (output.send-message [m d1 d2]))))
 
         :gridGet   grid-get })))

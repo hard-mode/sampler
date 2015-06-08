@@ -99,7 +99,7 @@
       (fn [] (find-rtmidi-port c-name-re p-name-re))
       jack.state.events "port-online"
       (fn [c p] (and (re-test c-name-re c) (re-test p-name-re p)))
-      (fn [c-name p-name] (log "=>" c-name p-name) (deferred.resolve [c-name p-name])))
+      (fn [c-name p-name] (deferred.resolve [c-name p-name])))
     deferred.promise))
 
 
@@ -113,8 +113,7 @@
                   (Q.all [ (expect-hardware-port hppname)
                            (expect-virtual-port vpcname vppname) ])
                 connected (Q.defer)]
-      (set! m.after-online ports-online)
-      (set! m.after-connect connected.promise)
+      (set! m.connected connected.promise)
       (set! (aget persist.midi.inputs port-name) m)
       (jack.after-session-start.then (fn []
         (m.open-virtual-port port-name)
@@ -123,7 +122,8 @@
                             in-port  (aget ports 1)]
             (jack.connect-by-name
               (aget out-port 0) (aget out-port 1)
-              (aget in-port  0) (aget in-port  1)))))))
+              (aget in-port  0) (aget in-port  1))
+            (connected.resolve))))))
       m))))
 
 
@@ -137,8 +137,7 @@
                   (Q.all [ (expect-virtual-port vpcname vppname)
                            (expect-hardware-port hppname) ])
                 connected (Q.defer)]
-      (set! m.after-online ports-online)
-      (set! m.after-connect connected.promise)
+      (set! m.connected connected.promise)
       (set! (aget persist.midi.outputs port-name) m)
       (jack.after-session-start.then (fn []
         (m.open-virtual-port port-name)
@@ -147,7 +146,8 @@
                             in-port  (aget ports 1)]
             (jack.connect-by-name
               (aget out-port 0) (aget out-port 1)
-              (aget in-port  0) (aget in-port  1)))))))
+              (aget in-port  0) (aget in-port  1))
+            (connected.resolve))))))
       m))))
 
 

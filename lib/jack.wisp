@@ -191,8 +191,7 @@
   (not (= -1 (find-port client-name port-name))))
 
 (defn port [client-name port-name]
-  (let [deferred  (Q.defer)
-
+  (let [deferred   (Q.defer)
         port-state { :name    port-name  
                      :client  client-name
                      :started deferred.promise
@@ -206,16 +205,12 @@
     port-state))
 
 (defn client [client-name]
-  (let [deferred  (Q.defer)
-
-        client-state   { :name     client-name
-                         :online   false
-                         :started  deferred.promise
-                         :events   (event2.EventEmitter2.)
-                         :port     (port.bind null client-name) }
-
-        start     (fn [] (set! client-state.online true)
-                         (deferred.resolve))]
+  (let [deferred     (Q.defer)
+        client-state { :name     client-name
+                       :online   false
+                       :started  deferred.promise
+                       :events   (event2.EventEmitter2.)
+                       :port     (port.bind null client-name) }]
 
     (expect
       after-session-start (fn [] (client-found client-name))
