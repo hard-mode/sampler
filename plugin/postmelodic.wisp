@@ -1,8 +1,9 @@
 (ns sample (:require [wisp.runtime :refer [str =]]))
 
-(def ^:private jack  (require "../lib/jack.wisp"))
-(def ^:private osc   (require "../lib/osc.wisp"))
-(def ^:private path  (require "path"))
+(def ^:private event2 (require "eventemitter2"))
+(def ^:private jack   (require "../lib/jack.wisp"))
+(def ^:private osc    (require "../lib/osc.wisp"))
+(def ^:private path   (require "path"))
 
 (def postmelodic "/home/epimetheus/code/hardmode/postmelodic/bin/sample_player")
 
@@ -37,17 +38,29 @@
                                             "-p" osc-port
                                             sample)
 
+            events             (event2.EventEmitter2.)
+
             state
             { :client  jack-client
               :process jack-process
               :started jack-client.started
               :port    jack-client.port
+              :events  events
 
               :play    (fn [cue]    (osc-send "/play" 0 (or cue 0)))
               :stop    (fn []       (osc-send "/stop" 0))
               :kill    (fn [signal] (jack-process.kill signal)) }]
 
         (set! (aget persist.postmelodic jack-client-name) state)
+
+        (osc.on "message" (fn [msg]
+          (if (and (= "/stopped" msg.address)
+                   (= (str osc-port) (aget msg.args 1)))
+            (state.events.emit "stopped"))))
+
+        (jack-client.started.then (fn []
+          (log "-> postmelodic" jack-client-name "started")
+          (osc-send "/listen")))
 
         state))))
 
