@@ -97,9 +97,9 @@
   _ (launchpad.events.on "input" (fn [msg]
       (if (= :note-on msg.event)
         (let [clip (launcher.get (grid.midi-to-xy.get msg.data1))]
-          (if clip (do
+          (if clip (time.events.once "pulse" (fn []
             (launchpad.send 144 msg.data1 48)
-            (clip.player.play)))))))
+            (clip.player.play))))))))
 
 
   ;web

@@ -2,6 +2,7 @@
 
 (def ^:private Long      (require "osc/node_modules/long"))
 (def ^:private NanoTimer (require "nanotimer"))
+(def ^:private event2    (require "eventemitter2"))
 (def ^:private jack      (require "./jack.wisp"))
 (def ^:private osc       (require "./osc.wisp"))
 
@@ -43,7 +44,8 @@
 
         finder       nil
 
-        on-pulse     (fn [ntp utc frm p-ntp p-utc p-frm pulse] (log "pulse" pulse))
+        events       (event2.EventEmitter2. { :maxListeners 64 })
+        on-pulse     (fn [ntp utc frm p-ntp p-utc p-frm pulse] (events.emit "pulse"))
         on-tick      (fn [ntp utc frm frame pulse])
         on-drift     (fn [ntp utc frm ntp-diff utc-diff])
         on-transport (fn [ntp utc frm fps ppm ppc pt state] (log "transport" state))]
@@ -65,6 +67,8 @@
 
       :stop (fn [] (osc-send "/stop"))
       :play (fn [] (osc-send "/start"))
+
+      :events events
 
       :each each }))
 
