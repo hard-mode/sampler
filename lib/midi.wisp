@@ -1,6 +1,7 @@
 (ns midi (:require [wisp.runtime :refer [= and not str]]))
 
 (def ^:private bitwise (require "./bitwise.js"))
+(def ^:private expect  (.-expect (require "./util.wisp")))
 (def ^:private jack    (require "./jack.wisp"))
 (def ^:private midi    (require "midi"))
 (def ^:private Q       (require "q"))
@@ -76,34 +77,29 @@
   nil)
 
 
+(defn re-test [regex value]
+  (.test (RegExp regex) value))
+
+
 (defn expect-hardware-port [port-name-regex]
-  (let [deferred (Q.defer)
-        found    (fn [port-name] (deferred.resolve [a2j.name port-name]))
-        finder   nil]
-    (.then (Q.all [jack.after-session-start a2j.started]) (fn []
-      (let [hw-port (find-a2j-port port-name-regex)]
-        (if hw-port
-          (found hw-port)
-          (do (set! finder (fn [c p]
-                (if (and (= a2j.name c) (.test (RegExp. port-name-regex) p))
-                  (do (found p) (jack.state.events.off "port-online" finder)))))
-              (jack.state.events.on "port-online" finder))))))
+  (let [deferred (Q.defer)]
+    (expect
+      (Q.all [jack.after-session-start a2j.started])
+      (fn [] (find-a2j-port port-name-regex))
+      jack.state.events "port-online"
+      (fn [c p] (and (= a2j.name c) (re-test port-name-regex p)))
+      (fn [port-name] (deferred.resolve [a2j.name port-name])))
     deferred.promise))
 
 
-(defn expect-virtual-port [client-name-regex port-name-regex]
-  (let [deferred (Q.defer)
-        found    (fn [c-name p-name] (deferred.resolve [c-name p-name]))
-        finder   nil]
-    (jack.after-session-start.then (fn []
-      (let [rtmidi-port (find-rtmidi-port client-name-regex port-name-regex)]
-        (if rtmidi-port
-          (found rtmidi-port.client rtmidi-port.port)
-          (do (set! finder (fn [c p]
-                (if (and (.test (RegExp. client-name-regex) c)
-                         (.test (RegExp. port-name-regex)   p))
-                  (do (found c p) (jack.state.events.off "port-online" finder)))))
-              (jack.state.events.on "port-online" finder))))))
+(defn expect-virtual-port [c-name-re p-name-re]
+  (let [deferred (Q.defer)]
+    (expect
+      jack.after-session-start
+      (fn [] (find-rtmidi-port c-name-re p-name-re))
+      jack.state.events "port-online"
+      (fn [c p] (and (re-test c-name-re c) (re-test p-name-re p)))
+      (fn [c-name p-name] (log "=>" c-name p-name) (deferred.resolve [c-name p-name])))
     deferred.promise))
 
 
@@ -154,6 +150,7 @@
               (aget in-port  0) (aget in-port  1)))))))
       m))))
 
+
 (def event-types
   { 128 :note-off
     144 :note-on
@@ -163,12 +160,14 @@
     208 :pressure
     224 :pitch-bend })
 
+
 (defn parse
   ([msg] (parse (aget msg 0) (aget msg 1) (aget msg 2)))
   ([d1 d2 d3]
     (let [channel (bitwise.and d1 15)
           event   (aget event-types (bitwise.and d1 240))]
       {:channel channel :event event :data1 d2 :data2 d3})))
+
 
 (defn match
   [mask msg]

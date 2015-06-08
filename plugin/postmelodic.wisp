@@ -59,7 +59,6 @@
             (state.events.emit "stopped"))))
 
         (jack-client.started.then (fn []
-          (log "-> postmelodic" jack-client-name "started")
           (osc-send "/listen")))
 
         state))))

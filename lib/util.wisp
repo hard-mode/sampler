@@ -23,7 +23,9 @@
     Wisp's syntax doesn't seem to let an event handler unbind itself.
     Looks somewhat like a combination of promises and events; maybe
     the deferred should also be part of this construct, and a promise
-    should always be returned? "
+    should always be returned? Also, how difficult would a circular
+    expect be, and would it be the way to go for achieving automatic
+    re-initialization of unplugged and then re-plugged controllers?"
   ([emitter event finder found]
     (let [finder- nil]
       (set! finder- (fn [& args]
@@ -31,8 +33,9 @@
           (do (found.apply null args)
               (emitter.off event finder-)))))
       (emitter.on event finder-)))
-  ([pre-promise pre-found emitter event finder found]
+  ([pre-promise pre-finder emitter event finder found]
     (pre-promise.then (fn [& args]
-      (if (pre-found.apply null args)
-        (found.apply null args)
-        (expect emitter event finder found))))))
+      (let [pre-found (pre-finder.apply null args)]
+        (if pre-found
+          (found.apply null [pre-found])
+          (expect emitter event finder found)))))))

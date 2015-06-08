@@ -96,7 +96,7 @@
 
         :clear     (fn [] (events.emit "clear"))
         :send      (fn [m d1 d2]
-                     (log "-> then")
-                     (output.after-online.then (fn [] (log "-> now" m d1 d2) (output.send-message [m d1 d2]))))
+                     (output.after-online.then (fn []
+                       (output.send-message [m d1 d2]))))
 
         :gridGet   grid-get })))
