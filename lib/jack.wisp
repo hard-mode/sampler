@@ -8,6 +8,7 @@
 (def ^:private dbus     (require "dbus-native"))
 (def ^:private do-spawn (require "./spawn.wisp"))
 (def ^:private event2   (require "eventemitter2"))
+(def ^:private expect   (.-expect (require "./util.wisp")))
 (def ^:private Q        (require "q"))
 
 ; initialize state
@@ -195,22 +196,12 @@
         port-state { :name    port-name  
                      :client  client-name
                      :started deferred.promise
-                     :online  false }
+                     :online  false }]
 
-        start     (fn [] (set! port-state.online true)
-                         (deferred.resolve))
-
-        starter   nil ]
-
-    (after-session-start.then (fn []
-      (if (port-found client-name port-name)
-        (start)
-        (do
-          (set! starter (fn [c p]
-            (if (and (= c client-name) (= p port-name)) (do
-              (start)
-              (state.events.off "port-online" starter)))))
-          (state.events.on "port-online" starter)))))
+    (expect
+      after-session-start (fn [] (port-found client-name port-name))
+      state.events "port-online" (fn [c p] (and (= c client-name) (= p port-name)))
+      (fn [] (set! port-state.online true) (deferred.resolve)))
     
     port-state))
 
@@ -224,19 +215,12 @@
                          :port     (port.bind null client-name) }
 
         start     (fn [] (set! client-state.online true)
-                         (deferred.resolve))
+                         (deferred.resolve))]
 
-        starter   nil]
-
-    (after-session-start.then (fn []
-      (if (client-found client-name)
-        (start)
-        (do
-          (set! starter (fn [c]
-            (if (= c client-name) (do
-              (start)
-              (state.events.off "client-online" starter)))))
-          (state.events.on "client-online" starter)))))
+    (expect
+      after-session-start (fn [] (client-found client-name))
+      state.events "client-online" (fn [c] (= c client-name))
+      (fn [] (set! client-state.online true) (deferred.resolve)))
 
     client-state))
 
