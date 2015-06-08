@@ -25,7 +25,7 @@
     the deferred should also be part of this construct, and a promise
     should always be returned? Also, how difficult would a circular
     expect be, and would it be the way to go for achieving automatic
-    re-initialization of unplugged and then re-plugged controllers?"
+    re-initialization of unplugged and then re-plugged controllers? "
   ([emitter event finder found]
     (let [finder- nil]
       (set! finder- (fn [& args]

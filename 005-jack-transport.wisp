@@ -86,16 +86,20 @@
     (let [launcher (Map.)]
       (tracks.map (fn [track track-no]
         (track.clips.map (fn [clip clip-no]
-          (let [coords (coords track-no clip-no)]
-            (log (grid.xy-to-midi.get coords))
-            (launchpad.send 144 (grid.xy-to-midi.get coords) 127)
+          (let [coords (coords track-no clip-no)
+                data1  (grid.xy-to-midi.get coords)
+                reset  (fn [] (launchpad.send 144 data1 54))]
+            (reset)
+            (clip.player.events.on "stopped" reset)
             (launcher.set coords clip))))))
       launcher)
 
   _ (launchpad.events.on "input" (fn [msg]
       (if (= :note-on msg.event)
         (let [clip (launcher.get (grid.midi-to-xy.get msg.data1))]
-          (if clip (clip.player.play))))))
+          (if clip (do
+            (launchpad.send 144 msg.data1 48)
+            (clip.player.play)))))))
 
 
   ;web
