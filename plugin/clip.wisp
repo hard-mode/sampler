@@ -29,6 +29,9 @@
       (if (= arg note) (clip.player.play))))
     (events.on "btn-off" (fn [arg]
       (if (= arg note) (clip.player.stop))))
+    (clip.player.events.on "stopped" (fn []
+      (clip.player.events.emit "update" { :event :note-off :data1 note })
+      (log "STOPPED")))
     btn))
 
 (defn init-track [grid events track track-number]

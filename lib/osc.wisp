@@ -39,5 +39,5 @@
     (fn send-osc-to [addr & args]
       (client.send { :address addr :args args} host port))))
 
-(defn on [msg cb]
-  (persist.osc.default-client.on msg cb))
+(defn on [evt cb]
+  (persist.osc.default-client.on evt cb))
