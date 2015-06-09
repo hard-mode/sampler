@@ -54,9 +54,14 @@
         (set! (aget persist.postmelodic jack-client-name) state)
 
         (osc.on "message" (fn [msg]
+          ;(if (and (not (= "/tick" msg.address))
+                   ;(not (= "/drift" msg.address))) (log msg))
           (if (and (= "/stopped" msg.address)
                    (= (str osc-port) (aget msg.args 1)))
-            (state.events.emit "stopped"))))
+            (state.events.emit "stopped"))
+          (if (and (= "/playing" msg.address)
+                   (= (str osc-port) (aget msg.args 3)))
+            (state.events.emit "playing" msg.args))))
 
         (jack-client.started.then (fn []
           (osc-send "/listen")))
