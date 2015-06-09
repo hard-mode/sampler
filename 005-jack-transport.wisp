@@ -87,6 +87,23 @@
   grid
     (midi-grid 8 8 (fn [x y] (+ x (* 16 y))))
 
+  beat-skipper
+    (fn [beats row]
+      (let [state { :index 0 :beats beats :row row }]
+        (time.events.on "pulse" (fn []
+          (.map (util.range 8) (fn [i]
+            (let [xy  (coords i row)
+                  mid (grid.xy-to-midi.get xy)]
+              (if (= state.index i)
+                (launchpad.send 144 mid 48)
+                (launchpad.send 144 mid 0)))))
+          (set! state.index (+ state.index 1))
+          (if (= state.index beats) (set! state.index 0))))
+        state))
+
+  skippers
+    (tracks.map (fn [track track-no] (beat-skipper 8 (+ 4 track-no))))
+
   launcher
     (let [launcher (Map.)]
       (tracks.map (fn [track track-no]
@@ -109,12 +126,17 @@
               row  (aget (.split xy ",") 1)
               clip (launcher.get xy)]
           (log col row clip)
-          (if clip (time.events.once "pulse" (fn []
-            (.map (util.range 8) (fn [i]
-              (log "stopping" 1 (coords col i) (launcher.get (coords col i)))
-              (if (and (launcher.get (coords col i)) (not (= i row)))
-                (.player.stop (launcher.get (coords col i))))))
-            (clip.player.play))))))))
+          (if clip (do
+            ; move jumper
+            (set! (.-index (aget skippers col)) 0)
+            ; then on next beat
+            (time.events.once "pulse" (fn []
+              ; stop the rest
+              (.map (util.range 8) (fn [i]
+                (if (and (launcher.get (coords col i)) (not (= i row)))
+                  (.player.stop (launcher.get (coords col i))))))
+              ; play selected clip
+              (clip.player.play)))))))))
 
 
   ;web
