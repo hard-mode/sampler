@@ -40,17 +40,22 @@
   clip
     (require "./plugin/clip.wisp")
 
-  tracks [
-    (clip.track { :name "Drums 1"   }
-      "samples/drums1-174bpm.wav")
+  tracks (let [t clip.track
+               c clip.clip] [
 
-    (clip.track { :name "Drums 2"   }
-      "samples/drums2-174bpm.wav")
+    (t { :name "Drums 1"   }
+      (c "samples/drums1-174bpm.wav")
+      (c "samples/perc-1.wav"))
 
-    (clip.track { :name "Bass" }
-      "samples/bass1-174bpm.wav")
-  ]
+    (t { :name "Drums 2"   }
+      (c "samples/drums2-174bpm.wav" :loop 1))
 
+    (t { :name "Bass" }
+      (c "samples/bass1-174bpm.wav")
+      (c "samples/bass-oneshot-1.wav"))
+
+  ])
+      
   ;; start clips from launchpad and web ui ------------------------
 
   control
@@ -91,18 +96,24 @@
                 playing (fn [& args] (launchpad.send 144 data1 48))
                 stopped (fn [] (launchpad.send 144 data1 54))]
             (stopped)
-            (clip.player.events.on "playing" playing)
+            (clip.player.events.on "loaded"  stopped)
             (clip.player.events.on "stopped" stopped)
+            (clip.player.events.on "playing" playing)
             (launcher.set coords clip))))))
       launcher)
 
   _ (launchpad.events.on "input" (fn [msg]
       (if (= :note-on msg.event)
         (let [xy   (grid.midi-to-xy.get msg.data1)
-              y    (aget (.split xy ",") 0)
+              col  (aget (.split xy ",") 0)
+              row  (aget (.split xy ",") 1)
               clip (launcher.get xy)]
-          ;(log y)
+          (log col row clip)
           (if clip (time.events.once "pulse" (fn []
+            (.map (util.range 8) (fn [i]
+              (log "stopping" 1 (coords col i) (launcher.get (coords col i)))
+              (if (and (launcher.get (coords col i)) (not (= i row)))
+                (.player.stop (launcher.get (coords col i))))))
             (clip.player.play))))))))
 
 
@@ -119,6 +130,15 @@
         ;{ :tracks tracks })))))
 
 )
+
+  ;  tracks [
+  ;    (clip.track { :name "Drums 1" } | (clip.track                | (clip.track { :name "Bass" }  X
+  ;      "samples/drums1-1.wav"        |   { :name "Drums 2"        |   "samples/bass1-174bpm.wav") X
+  ;      "samples/drums1-2.wav")       |     :quantize 0.25  }      |                               X
+  ;                                    |    "samples/drums2-1.wav"  |                               X
+  ;                                    |    "samples/drums2-2.wav") |                               X
+  ;                                    |    "samples/drums2-3.wav") |                               X
+  ;   -->
 
   ;; synth --------------------------------------------------------
   ;lpd-kbd-1 (launchpad.keyboard 4 125)

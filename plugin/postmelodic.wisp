@@ -33,35 +33,33 @@
                                 ":" (if process.main process.main.filename nil)
                                 ":" jack-client-name)
 
-            jack-process      (jack.spawn spawn-key
-                                postmelodic "-n" jack-client-name
-                                            "-p" osc-port
-                                            sample)
-
             events             (event2.EventEmitter2.)
 
             state
             { :client  jack-client
-              :process jack-process
+              :process nil
               :started jack-client.started
               :port    jack-client.port
               :events  events
 
               :play    (fn [cue]    (osc-send "/play" 0 (or cue 0)))
-              :stop    (fn []       (osc-send "/stop" 0))
-              :kill    (fn [signal] (jack-process.kill signal)) }]
+              :stop    (fn []       (osc-send "/stop" 0)) } ]
 
         (set! (aget persist.postmelodic jack-client-name) state)
 
         (osc.on "message" (fn [msg]
-          ;(if (and (not (= "/tick" msg.address))
-                   ;(not (= "/drift" msg.address))) (log msg))
-          (if (and (= "/stopped" msg.address)
-                   (= (str osc-port) (aget msg.args 1)))
-            (state.events.emit "stopped"))
-          (if (and (= "/playing" msg.address)
-                   (= (str osc-port) (aget msg.args 3)))
-            (state.events.emit "playing" msg.args))))
+          (if (= (str osc-port) (aget msg.args 0)) (do
+            (log msg)
+            (cond
+              (= "/loaded"  msg.address) (state.events.emit "loaded"  msg.args)
+              (= "/stopped" msg.address) (state.events.emit "stopped" msg.args)
+              (= "/playing" msg.address) (state.events.emit "playing" msg.args))))))
+
+        (set! state.jack-process (jack.spawn
+          spawn-key postmelodic "-n" jack-client-name
+                                "-p" osc-port
+                                sample))
+        (set! state.kill (fn [signal] (state.jack-process.kill signal)))
 
         (jack-client.started.then (fn []
           (osc-send "/listen")))
