@@ -3,6 +3,7 @@
 (def ^:private Long      (require "osc/node_modules/long"))
 (def ^:private NanoTimer (require "nanotimer"))
 (def ^:private event2    (require "eventemitter2"))
+(def ^:private expect    (.-expect (require "./util.wisp")))
 (def ^:private jack      (require "./jack.wisp"))
 (def ^:private osc       (require "./osc.wisp"))
 
@@ -34,32 +35,74 @@
       (set! (aget state n) new-timer)
       new-timer)))
 
+(defn frame->second [fps frame]
+  (/ frame fps))
+
+(defn second->beat [bpm seconds]
+  (Math.floor (+ 1 (* seconds (/ bpm 60)))))
+
+(defn beat->bar [meter-top beats]
+  (Math.floor (+ 0.75 (/ beats meter-top))))
+
 (defn make-transport [tempo meter]
-  (let [jack-osc     (jack.spawn "jack-osc" jack-osc "-p" 57130)
-        klick        (jack.spawn "klick" klick "-T" meter tempo)
+  (let [jack-osc      (jack.spawn "jack-osc" jack-osc "-p" 57130)
 
-        osc-send     (osc.bind-to 57130) ; jack-osc default port
-        bitmask      (Long.fromString "FFFFFFF" false 16)
-        osc-connect  (fn [] (osc-send "/receive" bitmask))
+        klick         (jack.spawn "klick" klick "-T" meter tempo)
 
-        finder       nil
+        osc-send      (osc.bind-to 57130) ; jack-osc default port
 
-        events       (event2.EventEmitter2. { :maxListeners 64 })
-        on-pulse     (fn [ntp utc frm p-ntp p-utc p-frm pulse] (events.emit "pulse"))
-        on-tick      (fn [ntp utc frm frame pulse])
-        on-drift     (fn [ntp utc frm ntp-diff utc-diff])
-        on-transport (fn [ntp utc frm fps ppm ppc pt state] (log "transport" state))]
+        bitmask       (Long.fromString "FFFFFFF" false 16)
 
-    (set! finder (fn [client-name] (if (= 0 (client-name.index-of "jack-osc"))
-      (do (osc-connect) (jack.state.events.off "client-online" finder)))))
+        state         { :rolling nil
+                        :bpm nil :meter-top nil :meter-bottom nil
+                        :fps nil :frames nil :seconds nil :beats nil :bars nil }
 
-    (jack.state.events.on "client-online" finder)
+        events        (event2.EventEmitter2. { :maxListeners 64 })
+
+        on-status     (fn [fps ppm ppc pt rolling]
+                        (set! state.fps          fps    )
+                        (set! state.bpm          ppm    )
+                        (set! state.meter-top    ppc    )
+                        (set! state.meter-bottom pt     )
+                        (set! state.rolling      rolling))
+
+        on-pulse      (fn [ntp utc frm p-ntp p-utc p-frm pulse]
+                        (events.emit "pulse"))
+
+        on-tick       (fn [ntp utc frm frame pulse]
+
+                        ; hack: swap bytes
+                        ; TODO: fix this in osc.js?
+                        (let [h frame.high l frame.low]
+                          (set! frame.high l) (set! frame.low h))
+
+                        (set! state.frames  frame)
+                        (set! state.seconds (frame->second state.fps frame))
+                        (set! state.beats   (second->beat  state.bpm state.seconds))
+                        (set! state.bars    (beat->bar     state.meter-top state.beats))
+
+                        (log state.bars state.beats)
+
+                        (events.emit "tick"))
+
+        on-drift      (fn [ntp utc frm ntp-dif utc-dif])
+
+        on-transport  (fn [ntp utc frm fps ppm ppc pt rolling]  (log "transport" rolling))]
+
+    ; as soon as a client with name starting with jack-osc comes online
+    ; connect to it via osc and ask it to send jack transport updates
+    (expect jack.state.events "client-online"
+      (fn [c-name] (= 0 (c-name.index-of "jack-osc")))
+      (fn [] (osc-send "/receive" bitmask)
+             (osc-send "/status")
+             (osc-send "/current")))
 
     (osc.on "message" (fn [msg] (cond
-      (= msg.address "/pulse")     (on-pulse.apply     nil msg.args)
-      (= msg.address "/tick")      (on-tick.apply      nil msg.args)
-      (= msg.address "/drift")     (on-drift.apply     nil msg.args)
-      (= msg.address "/transport") (on-transport.apply nil msg.args)
+      (= msg.address "/status.reply")  (on-status.apply    nil msg.args)
+      (= msg.address "/pulse")         (on-pulse.apply     nil msg.args)
+      (= msg.address "/tick")          (on-tick.apply      nil msg.args)
+      (= msg.address "/drift")         (on-drift.apply     nil msg.args)
+      (= msg.address "/transport")     (on-transport.apply nil msg.args)
       :else nil)))
 
     { :tempo tempo
