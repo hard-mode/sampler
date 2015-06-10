@@ -57,14 +57,17 @@
                         :bpm nil :meter-top nil :meter-bottom nil
                         :fps nil :frames nil :seconds nil :beats nil :bars nil }
 
+        update-state  (fn [fps bpm meter-top meter-bottom rolling]
+                        (set! state.fps          fps)
+                        (set! state.bpm          bpm)
+                        (set! state.meter-top    meter-top)
+                        (set! state.meter-bottom meter-bottom)
+                        (set! state.rolling      rolling))
+
         events        (event2.EventEmitter2. { :maxListeners 64 })
 
         on-status     (fn [fps ppm ppc pt rolling]
-                        (set! state.fps          fps    )
-                        (set! state.bpm          ppm    )
-                        (set! state.meter-top    ppc    )
-                        (set! state.meter-bottom pt     )
-                        (set! state.rolling      rolling))
+                        (update-state fps ppm ppc pt rolling))
 
         on-pulse      (fn [ntp utc frm p-ntp p-utc p-frm pulse]
                         (events.emit "pulse"))
@@ -85,7 +88,9 @@
 
         on-drift      (fn [ntp utc frm ntp-dif utc-dif])
 
-        on-transport  (fn [ntp utc frm fps ppm ppc pt rolling]  (log "transport" rolling))]
+        on-transport  (fn [ntp utc frm fps ppm ppc pt rolling]
+                        (log (if rolling "Playing" "Stopped"))
+                        (update-state fps ppm ppc pt rolling))]
 
     ; as soon as a client with name starting with jack-osc comes online
     ; connect to it via osc and ask it to send jack transport updates
@@ -110,6 +115,7 @@
       :play (fn [] (osc-send "/start"))
 
       :events events
+      :state  state
 
       :each each }))
 

@@ -129,12 +129,17 @@
 
   _ (launchpad.events.on "input" (fn [msg]
       (if (= :note-on msg.event)
-        (let [xy    (grid.midi-to-xy.get msg.data1)
-              col   (aget (.split xy ",") 0)
-              row   (aget (.split xy ",") 1)
-              track (aget launcher col)]
-          (if (and track (aget track.clips row))
-            (pad-pressed track (aget track.clips row)))))))
+        (let [xy (grid.midi-to-xy.get msg.data1)]
+          (cond
+            xy
+              (let [col   (aget (.split xy ",") 0)
+                    row   (aget (.split xy ",") 1)
+                    track (aget launcher col)]
+                (if (and track (aget track.clips row))
+                  (pad-pressed track (aget track.clips row))))
+            (= 120 msg.data1)
+              (do (log time.state)
+                  (if time.state.rolling (time.stop) (time.play))))))))
 
   ;enqueue
     ;(fn [track clip]
