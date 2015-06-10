@@ -48,7 +48,7 @@
       (c "samples/perc-1.wav"))
 
     (t { :name "Drums 2"   }
-      (c "samples/drums2-174bpm.wav" :loop 1))
+      (c "samples/drums2-174bpm.wav" :loop 4))
 
     (t { :name "Bass" }
       (c "samples/bass1-174bpm.wav")
@@ -70,6 +70,11 @@
 
   coords
     (fn [& args] (args.join ","))
+
+  ;; commence spaghetti
+  ;; this is all wip -- not ready to replace relevant code in lib/*
+  ;; since it's just ad-hoc imperative bullshit and nothing like the
+  ;; clean declarative style i'm aiming for
 
   midi-grid
     (fn [xx yy to-midi]
@@ -117,15 +122,19 @@
             clips 
               (track.clips.map init-clip)]
         { :clips   clips
-          :stop    (fn [])
+          :stop    (fn [] (clips.map (fn [c] (c.player.stop))))
           :skipper (beat-skipper 8 (+ 4 track-no)) })))
 
-  pad-pressed
+  play-clip nil
+
+  _ (set! play-clip
     (fn [track clip]
+      (log clip.loop)
       (set! track.skipper.index 0)
+      (if clip.loop (time.after clip.loop (fn [] (play-clip track clip))))
       (time.events.once "pulse" (fn []
         (track.stop)
-        (clip.player.play))))
+        (clip.player.play)))))
 
   _ (launchpad.events.on "input" (fn [msg]
       (if (= :note-on msg.event)
@@ -136,7 +145,7 @@
                     row   (aget (.split xy ",") 1)
                     track (aget launcher col)]
                 (if (and track (aget track.clips row))
-                  (pad-pressed track (aget track.clips row))))
+                  (play-clip track (aget track.clips row))))
             (= 120 msg.data1)
               (do (log time.state)
                   (if time.state.rolling (time.stop) (time.play))))))))

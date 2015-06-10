@@ -64,6 +64,12 @@
                         (set! state.meter-bottom meter-bottom)
                         (set! state.rolling      rolling))
 
+        update-pos    (fn [frame]
+                        (set! state.frames  frame)
+                        (set! state.seconds (frame->second state.fps frame))
+                        (set! state.beats   (second->beat  state.bpm state.seconds))
+                        (set! state.bars    (beat->bar     state.meter-top state.beats)))
+
         events        (event2.EventEmitter2. { :maxListeners 64 })
 
         on-status     (fn [fps ppm ppc pt rolling]
@@ -73,24 +79,22 @@
                         (events.emit "pulse"))
 
         on-tick       (fn [ntp utc frm frame pulse]
-
                         ; hack: swap bytes
                         ; TODO: fix this in osc.js?
                         (let [h frame.high l frame.low]
                           (set! frame.high l) (set! frame.low h))
-
-                        (set! state.frames  frame)
-                        (set! state.seconds (frame->second state.fps frame))
-                        (set! state.beats   (second->beat  state.bpm state.seconds))
-                        (set! state.bars    (beat->bar     state.meter-top state.beats))
-
+                        (update-pos frame)
                         (events.emit "tick"))
 
         on-drift      (fn [ntp utc frm ntp-dif utc-dif])
 
         on-transport  (fn [ntp utc frm fps ppm ppc pt rolling]
                         (log (if rolling "Playing" "Stopped"))
-                        (update-state fps ppm ppc pt rolling))]
+                        (update-state fps ppm ppc pt rolling))
+
+        after         (fn [after-beats callback]
+                        (let [cue (+ state.beats after-beats)]
+                          (expect events "pulse" (fn [] (= cue state.beats)) callback)))]
 
     ; as soon as a client with name starting with jack-osc comes online
     ; connect to it via osc and ask it to send jack transport updates
@@ -116,6 +120,7 @@
 
       :events events
       :state  state
+      :after  after
 
       :each each }))
 
