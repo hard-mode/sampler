@@ -49,7 +49,6 @@
 
         (osc.on "message" (fn [msg]
           (if (= (str osc-port) (aget msg.args 0)) (do
-            (log msg)
             (cond
               (= "/loaded"  msg.address) (state.events.emit "loaded"  msg.args)
               (= "/stopped" msg.address) (state.events.emit "stopped" msg.args)

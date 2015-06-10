@@ -81,8 +81,6 @@
                         (set! state.beats   (second->beat  state.bpm state.seconds))
                         (set! state.bars    (beat->bar     state.meter-top state.beats))
 
-                        (log state.bars state.beats)
-
                         (events.emit "tick"))
 
         on-drift      (fn [ntp utc frm ntp-dif utc-dif])
